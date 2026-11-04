@@ -1,7 +1,9 @@
 """Single-agent, in-memory execution. No tool dispatch or durable recovery."""
 
 import asyncio
+import json
 import math
+from collections.abc import Coroutine
 from dataclasses import dataclass
 from enum import StrEnum
 from time import monotonic
@@ -18,6 +20,7 @@ from kairo_core.models import (
     require_text,
 )
 from kairo_core.state import RunStatus, transition
+from kairo_core.tools.registry import ToolContext, ToolExecution, ToolRegistry
 
 
 @dataclass(frozen=True)
@@ -51,6 +54,7 @@ class FailureCode(StrEnum):
     MODEL_ERROR = "MODEL_ERROR"
     INVALID_RESPONSE = "INVALID_RESPONSE"
     UNSUPPORTED_TOOL = "UNSUPPORTED_TOOL"
+    TOOL_UNCERTAIN = "TOOL_UNCERTAIN"
 
 
 @dataclass(frozen=True)
@@ -84,6 +88,7 @@ class RunResult:
     failure: Failure | None
     steps: tuple[StepRecord, ...]
     transitions: tuple[StateChange, ...]
+    tool_executions: tuple[ToolExecution, ...] = ()
 
 
 class _RunCancelled(Exception):
@@ -98,11 +103,11 @@ class _ModelCancelled(RuntimeError):
     pass
 
 
-async def _request_model(
-    model: Model, request: ModelRequest, timeout: float, cancellation: asyncio.Event
-) -> ModelResponse:
+async def _await_operation[T](
+    operation: Coroutine[object, object, T], timeout: float, cancellation: asyncio.Event
+) -> T:
     """Race model I/O against cancellation/time; always join child tasks."""
-    response_task = asyncio.create_task(model.generate(request), name="kairo-model-request")
+    response_task = asyncio.create_task(operation, name="kairo-operation")
     cancellation_task = asyncio.create_task(cancellation.wait(), name="kairo-cancellation-wait")
     tasks = (response_task, cancellation_task)
     try:
@@ -128,6 +133,8 @@ async def run_agent(
     config: AgentConfig | None = None,
     *,
     cancellation: asyncio.Event | None = None,
+    tools: ToolRegistry | None = None,
+    tool_context: ToolContext | None = None,
 ) -> RunResult:
     """Execute a fresh run. Invalid caller inputs raise; execution failures return FAILED.
 
@@ -136,12 +143,15 @@ async def run_agent(
     Adapters must be cooperative; this is not process isolation.
     """
     require_text(task, "task")
+    if tools is not None and tool_context is None:
+        raise ValueError("A tool registry requires a workspace context")
     config = config if config is not None else AgentConfig()
     cancellation = cancellation if cancellation is not None else asyncio.Event()
     run_id, attempt_id = uuid4(), uuid4()
     status = RunStatus.CREATED
     changes: list[StateChange] = []
     steps: list[StepRecord] = []
+    executions: list[ToolExecution] = []
     messages: tuple[Message, ...] = (Message("system", config.system_prompt), Message("user", task))
     deadline = monotonic() + config.run_timeout_seconds
 
@@ -156,7 +166,16 @@ async def run_agent(
     ) -> RunResult:
         move(target)
         return RunResult(
-            run_id, attempt_id, task, config, status, output, failure, tuple(steps), tuple(changes)
+            run_id,
+            attempt_id,
+            task,
+            config,
+            status,
+            output,
+            failure,
+            tuple(steps),
+            tuple(changes),
+            tuple(executions),
         )
 
     if cancellation.is_set():
@@ -171,12 +190,12 @@ async def run_agent(
             return finish(
                 RunStatus.FAILED, Failure(FailureCode.RUN_DEADLINE, "Run deadline exhausted")
             )
-        request = ModelRequest(messages, number)
+        request = ModelRequest(messages, number, tools.schemas_json() if tools else "[]")
         started = monotonic()
         failure: Failure | None = None
         try:
-            response = await _request_model(
-                model, request, min(remaining, config.step_timeout_seconds), cancellation
+            response = await _await_operation(
+                model.generate(request), min(remaining, config.step_timeout_seconds), cancellation
             )
         except _RunCancelled:
             steps.append(StepRecord(request, None, cancelled=True))
@@ -205,9 +224,80 @@ async def run_agent(
             steps.append(StepRecord(request, None, failure))
             return finish(RunStatus.FAILED, failure)
         if isinstance(response, ToolRequest):
-            failure = Failure(FailureCode.UNSUPPORTED_TOOL, "Tool execution requires M2")
-            steps.append(StepRecord(request, response, failure))
-            return finish(RunStatus.FAILED, failure)
+            if tools is None or tool_context is None:
+                failure = Failure(FailureCode.UNSUPPORTED_TOOL, "No tool registry was supplied")
+                steps.append(StepRecord(request, response, failure))
+                return finish(RunStatus.FAILED, failure)
+            steps.append(StepRecord(request, response))
+            move(RunStatus.WAITING_FOR_TOOL)
+
+            # Capture validated context before entering the child coroutine.
+            async def invoke(
+                registry: ToolRegistry, context: ToolContext, tool_response: ToolRequest
+            ) -> ToolExecution:
+                record = await registry.invoke(
+                    tool_response.name, tool_response.arguments_json, context
+                )
+                executions.append(record)
+                return record
+
+            budget = min(
+                deadline - monotonic(), config.step_timeout_seconds - (monotonic() - started)
+            )
+            if budget <= 0:
+                code = (
+                    FailureCode.RUN_DEADLINE
+                    if monotonic() >= deadline
+                    else FailureCode.STEP_TIMEOUT
+                )
+                return finish(RunStatus.FAILED, Failure(code, "Tool budget exhausted"))
+            try:
+                record = await _await_operation(
+                    invoke(tools, tool_context, response), budget, cancellation
+                )
+            except _RunCancelled:
+                return finish(RunStatus.CANCELLED)
+            except _CallTimedOut:
+                code = (
+                    FailureCode.RUN_DEADLINE
+                    if monotonic() >= deadline
+                    else FailureCode.STEP_TIMEOUT
+                )
+                return finish(RunStatus.FAILED, Failure(code, "Tool budget exhausted"))
+            if monotonic() >= deadline:
+                return finish(
+                    RunStatus.FAILED, Failure(FailureCode.RUN_DEADLINE, "Run deadline exhausted")
+                )
+            if monotonic() - started >= config.step_timeout_seconds:
+                return finish(
+                    RunStatus.FAILED, Failure(FailureCode.STEP_TIMEOUT, "Step deadline exhausted")
+                )
+            if record.outcome_uncertain:
+                return finish(
+                    RunStatus.FAILED,
+                    Failure(FailureCode.TOOL_UNCERTAIN, "Tool side effect requires reconciliation"),
+                )
+            messages += (
+                Message(
+                    "assistant",
+                    json.dumps({"tool": response.name, "arguments": response.arguments_json}),
+                ),
+                Message(
+                    "tool",
+                    json.dumps(
+                        {
+                            "name": record.name,
+                            "status": record.status,
+                            "output": json.loads(record.output_json)
+                            if record.output_json
+                            else None,
+                            "error_code": record.error_code,
+                        }
+                    ),
+                ),
+            )
+            move(RunStatus.RUNNING)
+            continue
         steps.append(StepRecord(request, response))
         messages += (Message("assistant", response.text),)
         if isinstance(response, Final):

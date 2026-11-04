@@ -1,6 +1,6 @@
 # ADR 0005: A provider-independent, cooperative M1 kernel
 
-Date: 2026-11-05. Status: implemented baseline; developer learning review pending.
+Date: 2026-11-05. Status: implemented baseline; learning consolidated in docs/learning/guide.md.
 Scope: M1 only, explicitly authorized by the user's request to continue to the next
 milestone. This does not assert completion of the M0 learning exercises.
 All paths are relative to `/Users/somyadeeptarat/Desktop/Kairo`.

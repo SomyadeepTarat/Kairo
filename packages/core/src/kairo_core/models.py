@@ -11,11 +11,11 @@ def require_text(value: str, name: str) -> None:
 
 @dataclass(frozen=True)
 class Message:
-    role: Literal["system", "user", "assistant"]
+    role: Literal["system", "user", "assistant", "tool"]
     content: str
 
     def __post_init__(self) -> None:
-        if self.role not in {"system", "user", "assistant"}:
+        if self.role not in {"system", "user", "assistant", "tool"}:
             raise ValueError("Unsupported message role")
         require_text(self.content, "content")
 
@@ -24,6 +24,7 @@ class Message:
 class ModelRequest:
     messages: tuple[Message, ...]
     step: int  # One-based model-call number within a run.
+    tool_schemas_json: str = "[]"
 
 
 @dataclass(frozen=True)
@@ -46,7 +47,7 @@ class Final:
 
 @dataclass(frozen=True)
 class ToolRequest:
-    """Recognized but unsupported in M1; argument schemas arrive in M2."""
+    """A single tool call; arguments are validated by the registry before invocation."""
 
     name: str
     arguments_json: str

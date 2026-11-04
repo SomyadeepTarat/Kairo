@@ -3,17 +3,15 @@
 A local-first agent execution harness built for engineering understanding and
 reliable, inspectable execution. The authoritative specification is [prd.md](prd.md).
 
-**Current scope: M1 single-agent execution kernel.** The bounded async loop runs
-with a deterministic scripted model. There is no live inference, tool execution,
-API, database integration or frontend. M2 requires an explicit request.
+**Current scope: M2 tools; M3 persistence is authorized next.** The custom kernel
+runs typed tools with explicit workspace permissions. Demos use a scripted model;
+no live inference or command sandbox is claimed.
 
 ## Start here
 
-1. [Architecture and contracts](docs/architecture/overview.md)
-2. [Initial state machine](docs/architecture/state-machine.md)
-3. [M1 implementation, validation and checklist](docs/milestones/M1.md)
-4. [M1 concepts and review exercises](docs/learning/m1.md)
-5. [Architecture decisions](docs/decisions/0001-foundation-boundaries.md)
+Read the single [M0–M3 engineering guide](docs/learning/guide.md) at your own pace.
+[Architecture](docs/architecture/overview.md), [state policy](docs/architecture/state-machine.md)
+and [milestone records](docs/milestones/M2.md) retain implementation evidence.
 
 ## Local setup
 
@@ -47,7 +45,7 @@ uv run --locked pytest
 
 `/Users/somyadeeptarat/Desktop/Kairo/scripts/doctor.py` reports required Python,
 Git and uv readiness, plus optional CLI presence. It does not check service health.
-Docker, PostgreSQL, Node and Ollama are not required for M1. Do not pull models,
+Docker, PostgreSQL, Node and Ollama are not required for M2. Do not pull models,
 create containers, or install a frontend for this milestone. Optional manual
 service diagnostics, when those services are deliberately started later:
 
@@ -68,7 +66,8 @@ uv run --locked python scripts/demo_kernel.py
 This executes a three-response script and reports its real kernel outcome. It
 performs no inference, tools or external work. Tests also cover failure, limits
 and cancellation. Run `uv run --locked pytest tests/core -q` for core tests only.
-See [the kernel decision](docs/decisions/0005-single-agent-kernel.md) for contracts,
+Run `uv run --locked python scripts/demo_tools.py` for real file I/O driven by a
+scripted model. See [the kernel decision](docs/decisions/0005-single-agent-kernel.md) for contracts,
 alternatives and cooperative cancellation limits. In-memory records do not survive
 process termination. M0 history remains in [its record](docs/milestones/M0.md).
 

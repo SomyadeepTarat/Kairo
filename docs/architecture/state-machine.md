@@ -68,3 +68,8 @@ Test disabled capabilities as well as the shared graph. No inference required.
 M3: transaction rollback and restart durability. M5: competing claims and stale
 owners. M6: crash before/after side effect and lost acknowledgment. A graph alone
 cannot prove any of those runtime guarantees.
+
+M2 update: WAITING_FOR_TOOL is now used by the runtime. Tool outcomes return to
+RUNNING unless cancelled, timed out by the runtime or uncertain. Unknown/invalid/
+denied calls are recorded without executing the denied handler. Approval and pause
+states remain future capabilities.

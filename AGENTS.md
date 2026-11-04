@@ -6,8 +6,10 @@ Repository root: `/Users/somyadeeptarat/Desktop/Kairo`.
   to explicit user updates recorded in `docs/decisions/0004-solo-development.md`.
 - The project has one developer. Plan sequential work with review checkpoints;
   Codex assists with mentoring, implementation and review.
-- Current milestone: M1, explicitly authorized on 2026-11-05. Do not implement
-  M2 or beyond until explicitly requested. M0 learning review is not assumed complete.
+- Current authorized scope: M2 followed by M3. Commit after M2 before implementing
+  M3, as explicitly requested. Do not implement M4 or later without a new request.
+- Keep all M0–M3 study explanations/checkpoints in `docs/learning/guide.md`.
+  Do not create separate learning checklists or block implementation on study gates.
 - Explain concepts, alternatives, exact files and tests before implementing.
 - Keep local ARM64 development free of mandatory paid APIs/cloud services.
 - Implement fundamental orchestration ourselves; add dependencies with justification.
@@ -17,8 +19,8 @@ Repository root: `/Users/somyadeeptarat/Desktop/Kairo`.
 - Tests must validate actual behavior; label mocks and avoid model-dependent unit tests.
 - Run `uv run --locked python scripts/check.py`. State what actually passed and
   what could not run. Do not infer working services from installed CLIs.
-- The developer must understand contracts; do not mark human review complete
-  on their behalf. Keep milestone gates explicit.
+- Explain contracts and limitations candidly; do not claim the developer has
+  completed study or understood material on their behalf.
 - Use exact repository-relative paths in implementation instructions, and absolute
   links in chat when referencing local files.
 - Never overwrite user changes or commit/push without a request.

@@ -1,4 +1,4 @@
-# Kairo architecture — M1 baseline
+# Kairo architecture — M2 baseline
 
 Authority: `prd.md`, especially §§6–8, 11, 13–18, with the explicit solo-development
 update in `docs/decisions/0004-solo-development.md`. Everything below describes the
@@ -111,3 +111,12 @@ custom bounded asyncio loop preserves inspectability; asyncio overlaps I/O, not
 CPU-heavy Python work. PostgreSQL later supplies both state and the initial queue,
 avoiding a second consistency boundary with Redis. A state snapshot plus ordered
 history is sufficient; a full event-sourcing framework is not required.
+
+## M2 implementation update
+
+Typed tool registration, capability checks, descriptor-relative file tools and
+command-executor contracts now live in `packages/core/src/kairo_core/tools/`.
+The runtime enters WAITING_FOR_TOOL and supplies recorded results to the next model
+request. File I/O is real. No host command executor or sandbox is supplied.
+Consolidated learning material: `docs/learning/guide.md`. M3 persistence is authorized
+next; older paragraphs and diagrams describe milestone history and the roadmap.
