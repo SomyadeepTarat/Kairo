@@ -7,7 +7,7 @@ Keep `.python-version`, `pyproject.toml`, and mypy/Ruff targets aligned. The min
 version is shared; record patch versions when reporting experiments. uv manages the
 project virtual environment and exact transitive resolutions in `uv.lock`. The
 bootstrap is an existing uv installation, not a runtime dependency. No Python
-application package is built during M0 (`tool.uv.package = false`).
+application package was built during M0 (`tool.uv.package = false` at that time).
 
 | Dependency | Introduce | Reason / alternative / cost |
 | --- | --- | --- |
@@ -33,3 +33,14 @@ versions are resolved in `uv.lock`; broad manifest ranges are not the reproducib
 installation source. Upgrade deliberately and rerun checks. Docker-compatible
 local runtimes are acceptable; no mandatory paid license or new purchase is assumed.
 Node version selection is deferred until the frontend milestone.
+
+## M1 update — 2026-11-05
+
+ADR 0005 records the implemented choices. The root distribution now installs the
+core source using setuptools 80.9.0 (pinned build dependency only). No runtime
+libraries were added. Frozen dataclasses with explicit validation suffice for the
+local contract, so Pydantic is deferred. Async tests currently use asyncio.run;
+pytest-asyncio is deferred until async fixtures/composition justify its addition.
+The earlier table's M1 pytest-asyncio entry was an expectation, not a requirement
+to add unused tooling. FastAPI, PostgreSQL and all other service dependencies
+remain deferred to their actual implementation milestones.

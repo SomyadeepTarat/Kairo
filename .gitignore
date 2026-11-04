@@ -12,3 +12,7 @@ node_modules/
 .next/
 .coverage
 htmlcov/
+
+*.egg-info/
+build/
+dist/

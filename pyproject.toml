@@ -1,15 +1,19 @@
 [project]
 name = "kairo"
 version = "0.0.0"
-description = "Local-first agent execution harness — M0 engineering foundations"
+description = "Local-first agent execution harness — M1 single-agent execution kernel"
 requires-python = ">=3.13,<3.14"
 dependencies = []
 
 [dependency-groups]
 dev = ["pytest>=8", "ruff>=0.11", "mypy>=1.15"]
 
-[tool.uv]
-package = false
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["packages/core/src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -26,4 +30,4 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.mypy]
 python_version = "3.13"
 strict = true
-files = ["scripts", "tests"]
+files = ["packages/core/src", "scripts", "tests"]

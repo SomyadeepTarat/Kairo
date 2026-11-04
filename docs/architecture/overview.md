@@ -1,8 +1,10 @@
-# Kairo architecture — M0 design
+# Kairo architecture — M1 baseline
 
-Authority: `prd.md`, especially §§6–8, 11, 13–18. Everything below describes the
-intended system unless explicitly identified as implemented. M0 implements only
-engineering utilities and documentation. Paths in this document are relative to
+Authority: `prd.md`, especially §§6–8, 11, 13–18, with the explicit solo-development
+update in `docs/decisions/0004-solo-development.md`. Everything below describes the
+intended system unless explicitly identified as implemented. M1 implements the
+in-memory kernel, lifecycle policy, configuration and scripted model contract;
+M0 supplied engineering utilities and documentation. Paths in this document are relative to
 `/Users/somyadeeptarat/Desktop/Kairo`.
 
 ## What we are building
@@ -34,8 +36,13 @@ flowchart TD
     Inspection --> Web
 ```
 
-This diagram is a roadmap, not a claim that these services exist. No API, database,
-model adapter, runtime, or web application is implemented in M0.
+This diagram is a roadmap, not a claim that all services exist. Implemented in M1:
+`packages/core/src/kairo_core/state.py`, `packages/core/src/kairo_core/models.py`,
+and `packages/core/src/kairo_core/runtime.py`. Only the scripted model adapter is
+available; it performs no inference. There is no API, database, tool execution or
+web application yet. Concrete M1 contracts and evidence are in
+`docs/milestones/M1.md`; design tradeoffs are in
+`docs/decisions/0005-single-agent-kernel.md`.
 
 ## Ownership and boundaries
 
@@ -69,19 +76,20 @@ containers arrive separately in M4. A database container is not an agent sandbox
 Bind future local APIs/database ports to loopback. Execution containers must not
 inherit host secrets, Docker socket, or unrestricted filesystem mounts.
 
-## Contracts to agree before independent implementation
+## Contracts to agree before module implementation
 
-These are design obligations, not frozen wire schemas or M0 Python classes.
+These are system-level obligations, not frozen wire schemas. M1 implements only
+the kernel subset described in `docs/milestones/M1.md`.
 Exact endpoint payloads belong to their implementation milestone (PRD §10).
 
 | Interface | Input | Output / failure | Owner |
 | --- | --- | --- | --- |
-| Lifecycle | Run identity, expected current state, requested target, cause | Accepted transition or explicit invalid/stale-state error | A rules; B persistence integration |
-| Runtime | Task text, run/attempt identity, model port, limits, cancellation signal | Terminal outcome and ordered step records; bounded timeout/cancellation | A |
-| Model port | Explicit messages, available tool schemas, request deadline | Structured final answer or tool requests; typed transport/validation/timeout errors | A |
-| Tool executor | Invocation identity, validated name/arguments, policy and workspace context | Structured result/error, side-effect class, uncertain outcome when applicable | A schema; B sandbox |
-| Event storage | Run/attempt identity, type, redacted payload, timestamp | Durable per-run sequence; transaction failure surfaced | B |
-| Cancellation | Run identity and cancellation request | Request accepted separately from eventual CANCELLED outcome | B control; A cooperative execution |
+| Lifecycle | Run identity, expected current state, requested target, cause | Accepted transition or explicit invalid/stale-state error | Lifecycle policy; persistence adapter |
+| Runtime | Task text, run/attempt identity, model port, limits, cancellation signal | Terminal outcome and ordered step records; bounded timeout/cancellation | Runtime/intelligence |
+| Model port | Explicit messages, available tool schemas, request deadline | Structured final answer or tool requests; typed transport/validation/timeout errors | Runtime/intelligence |
+| Tool executor | Invocation identity, validated name/arguments, policy and workspace context | Structured result/error, side-effect class, uncertain outcome when applicable | Tool schema; sandbox adapter |
+| Event storage | Run/attempt identity, type, redacted payload, timestamp | Durable per-run sequence; transaction failure surfaced | Persistence |
+| Cancellation | Run identity and cancellation request | Request accepted separately from eventual CANCELLED outcome | Control plane; execution plane |
 
 Shared conventions: opaque UUID identities, UTC timezone-aware wall timestamps,
 monotonic clocks for elapsed durations, JSON-compatible boundary payloads, bounded

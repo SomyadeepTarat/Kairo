@@ -2,7 +2,9 @@
 
 Date: 2026-11-04. Status: selected M0 baseline; contributor review pending.
 
-Context: two students, local ARM64 hardware, zero additional spend, PRD §§13–17.
+Original context: two students, local ARM64 hardware, zero additional spend, PRD §§13–17.
+Update (2026-11-05): one developer; see `docs/decisions/0004-solo-development.md`.
+The modular architecture decision remains applicable.
 We need inspectable execution without maintaining a distributed platform first.
 
 Decision: logical control/execution boundaries in a modular Python application;

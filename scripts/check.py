@@ -1,4 +1,4 @@
-"""Run the same local foundation checks for both contributors; stop on failure."""
+"""Run the shared local quality checks; stop on failure."""
 
 import subprocess
 import sys

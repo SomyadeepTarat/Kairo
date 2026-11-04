@@ -1,7 +1,9 @@
 # Initial run state machine specification
 
-Specification only in M0. Executable types, transition validation, and tests belong
-to M1. Persistence belongs to M3; scheduler and recovery semantics arrive in M5/M6.
+The policy is implemented in M1 at `packages/core/src/kairo_core/state.py` and
+validated across all state pairs in `tests/core/test_state.py`. The M1 loop at
+`packages/core/src/kairo_core/runtime.py` uses only CREATED, QUEUED, RUNNING,
+COMPLETED, FAILED and CANCELLED. WAITING states and PAUSED remain future capabilities. Persistence belongs to M3; scheduler and recovery semantics arrive in M5/M6.
 All nine states from `prd.md` FR-02 are retained, even when features are deferred.
 
 | Source | Allowed targets | Cause / constraint |
