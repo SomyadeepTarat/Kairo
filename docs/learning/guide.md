@@ -19,7 +19,7 @@ The control plane accepts configuration and exposes execution records. The
 execution plane runs the loop and tools. These are logical boundaries within a
 small Python application; separate microservices would add network failures,
 deployment work and resource costs without improving the initial kernel.
-PostgreSQL will be the durable truth for inspection. Next.js, Ollama integration,
+PostgreSQL is the durable truth for recorded execution inspection. Next.js, Ollama integration,
 container execution and workers remain separate future work.
 
 The root `pyproject.toml` defines one installable distribution whose code lives in
@@ -182,3 +182,235 @@ For each component, be able to explain its purpose, behavior without it,
 alternatives, assumptions, failure detection, recovery limits, tests and cost.
 This is a reasoning habit, not another completion checklist. The source and tests
 are the authority for implemented behavior; the PRD describes the larger destination.
+
+## 7. Why persistence must happen during execution
+
+Before M3, RunResult existed only in memory. Saving it after completion would
+preserve successful runs but lose exactly the executions we most need to debug:
+ones that terminate midway. Read `packages/core/src/kairo_core/events.py`, then
+follow each awaited emit in `packages/core/src/kairo_core/runtime.py`.
+
+Recorder is another dependency-inversion boundary. It exposes start and record,
+without importing SQLAlchemy into the kernel. No recorder means in-memory use;
+RunRepository supplies durable use. A recording error propagates and prevents
+further work. A background fire-and-forget logging task would be faster sometimes,
+but could drop records on exit or acknowledge work that was never recorded.
+
+The ordering is deliberate:
+
+```text
+create task/run/attempt and run_created event
+  -> commit QUEUED, then RUNNING transitions
+  -> commit model_request
+  -> await the model
+  -> commit model_response
+  -> commit WAITING_FOR_TOOL and tool_requested
+  -> commit tool_started dispatch record
+  -> invoke validated tool
+  -> commit tool_finished
+  -> commit RUNNING, then request the next model response
+  -> commit terminal state together with final output/error
+```
+
+The registry may deny a dispatched request, so tool_started is not proof a shell
+command or authorized handler began. It means the invocation boundary was entered.
+The returned tool_finished record establishes validation failures or known results.
+The same invocation UUID links the request, dispatch, final record and tool table.
+
+If execution dies before a final response, committed history remains inspectable.
+A tool whose dispatch was recorded but completion was not can be uncertain. M3
+keeps that fact instead of declaring failure or automatically repeating the action.
+A worker lease/recovery protocol belongs to M5/M6, not a flag in this repository.
+
+Study checkpoint: find the exact awaits that occur before model/tool work. What
+would change if model_request or tool_started were recorded after the operation?
+What can an inspector safely conclude from STARTED without tool_finished?
+
+## 8. Understand the PostgreSQL tables and transaction boundary
+
+Read `packages/core/src/kairo_core/persistence/tables.py` and the matching migration
+at `migrations/versions/0001_execution_history.py`.
+
+| Table | Question it answers | Important relationship |
+| --- | --- | --- |
+| tasks | What work and configuration were requested? | One task can conceptually have multiple runs; M3 creates a task with each run |
+| runs | What is the current execution status and result? | References task and current attempt |
+| run_attempts | Which execution incarnation produced these records? | Belongs to one run; worker/recovery behavior is not implemented |
+| execution_events | What happened, in what durable order? | Run, attempt, unique per-run sequence |
+| tool_executions | What was requested and what outcome is known? | Invocation identity, run/attempt, side effect and uncertainty |
+
+UUIDs identify entities without requiring a database round trip first. Foreign keys
+prevent dangling identities at commit. Runs reference their current attempt while
+attempts reference their run: the named deferred foreign key allows both to be
+created in one transaction and checks integrity when that transaction commits.
+This avoids creating a temporarily committed run with no attempt.
+
+JSONB holds structured configuration/events that need to remain inspectable as the
+runtime evolves. It is not a substitute for relational identity and uniqueness
+constraints. Tool input/output JSON is stored as text because invalid input is
+still an important record, and must not fail JSONB parsing merely for being invalid.
+Wall timestamps use UTC-aware values. Sequence numbers provide order; timestamps
+can collide or come from different clocks.
+
+In `packages/core/src/kairo_core/persistence/repository.py`, read start, then record.
+Each method uses a session transaction. SQLAlchemy maps objects to rows and manages
+unit-of-work flushing; it does not eliminate the need to reason about SQL behavior.
+Psycopg is the actual PostgreSQL driver. SQLAlchemy's asyncio extra includes its
+required greenlet bridge; our runtime/database calls are still explicitly async.
+
+Record selects the run FOR UPDATE, serializing writers for that run. It checks
+current attempt and expected source state, validates the transition, updates the
+run/attempt snapshot, increments sequence, and inserts the event. The transaction
+commits all of that together. If event insertion fails, status and sequence must
+roll back too. The unique (run_id, sequence_number) constraint is a second line of
+defense. The lock does not implement worker ownership or scheduling.
+
+An index on run creation/id helps run-list ordering. The event uniqueness index
+supports per-run sequence lookup; tool records have a run/start/id index. Each
+event incurs a transaction; this favors clear durable boundaries over throughput.
+No performance claim exists until measured. Do not add batching or a second queue
+just because the architecture could eventually need them.
+
+A database transaction cannot roll back a filesystem write. If a write succeeds
+and tool_finished cannot commit, the database must retain uncertainty. Exactly-once
+external side effects cannot be obtained just by wrapping ORM calls in begin().
+There are no automatic retry loops in M3.
+
+Study checkpoint: sketch two concurrent event appenders. Why does FOR UPDATE plus
+a unique sequence constraint preserve order? Then explain why that same transaction
+cannot prove a shell command did or did not run after its acknowledgment was lost.
+
+## 9. Migrations and local configuration
+
+Read `alembic.ini` and `migrations/env.py`. Alembic versions database structure so
+another checkout can reproduce it. The migration explicitly creates tables,
+constraints and indexes. The ORM does not call create_all at application startup;
+that would bypass reviewed migration history and can hide schema drift.
+
+The environment obtains the PostgreSQL URL from KAIRO_DATABASE_URL. It does not
+print it or read arbitrary `.env` files. `.env.example` documents local values;
+exporting variables is explicit. `infrastructure/compose/compose.yaml` runs a
+PostgreSQL service on loopback port 55432 with a named volume. The published
+credentials are local-development values, not production secrets. Stop the service
+when needed without removing its volume; deleting the volume deletes durable data.
+
+The repository requires PostgreSQL, not a SQLite fallback. Async connections have
+a finite connect timeout. A paused Docker VM is an unavailable database even if
+Docker's CLI exists. A healthy container is an environment prerequisite, not proof
+that migrations or application transactions are correct.
+
+Integration tests create a random schema per test, set the session search_path to
+it, apply real migrations, and drop only that owned schema afterward. Alembic's
+version table uses the same default schema as reflection. One actual test failure
+caught a mismatch there: drift detection mistook the version table for an
+application table. Aligning version-table lookup with search_path fixed it.
+The roundtrip test also runs Alembic's metadata drift check.
+
+Study checkpoint: distinguish a Python virtual environment, container, named volume,
+database, schema, and migration revision. Which of them must survive an API restart?
+Why is downgrade testing restricted to a disposable test schema?
+
+## 10. The read-only inspection API
+
+Read `apps/api/src/kairo_api/main.py`. The factory constructs the app and repository;
+it does not execute agents, create tables or launch background workers. Lifespan
+cleanup disposes the engine. Keeping a factory lets tests instantiate a fresh app
+against the same database and lets uvicorn start it after configuration is exported.
+
+| Endpoint | Behavior |
+| --- | --- |
+| GET /api/v1/runs | Up to 100 runs, newest first; limit and offset pagination |
+| GET /api/v1/runs/{run_id} | Persisted state/result, task and configuration |
+| GET /api/v1/runs/{run_id}/events | Up to 1000 ordered events; after is an exclusive sequence cursor |
+| GET /api/v1/runs/{run_id}/tools | Up to 1000 invocation records, ordered by start/id |
+
+Pydantic response models document and validate the HTTP contract separately from
+ORM models. This avoids exposing arbitrary ORM internals as the public schema.
+FastAPI validates UUIDs and pagination. Unknown runs return 404, invalid arguments
+422, and database failures 503 with a generic message. An empty tool list for a
+known run is different from an unknown run. No POST/resume endpoint pretends to
+work. The server is trusted-local, without authentication; bind to 127.0.0.1.
+
+Database recording redacts known sensitive keys and common credential patterns,
+including nested JSON strings, in
+`packages/core/src/kairo_core/persistence/redaction.py`. This is not complete secret
+detection. Arbitrary file text can still contain secrets. Use dedicated workspaces
+and inspect what you permit to be recorded. Redaction intentionally prevents exact
+replay of secret-bearing inputs; it is better to document that than claim exact
+reproduction of data we deliberately removed.
+
+Study checkpoint: predict the responses to an unknown UUID, a malformed UUID,
+a negative event cursor and a database outage. Why should a read-only inspection
+server not launch executions while handling a GET request?
+
+## 11. Reproduce the whole flow
+
+Run these commands from `/Users/somyadeeptarat/Desktop/Kairo`:
+
+```sh
+uv sync --locked
+docker compose -p kairo-m3 -f infrastructure/compose/compose.yaml up -d --wait
+export KAIRO_DATABASE_URL='postgresql+psycopg://kairo:kairo_local_only@127.0.0.1:55432/kairo'
+uv run --locked alembic upgrade head
+uv run --locked python scripts/demo_history.py
+```
+
+The demo's model is scripted, but its file operations and database commits are
+real. Its disposable workspace is removed; its execution records remain. Copy the
+printed run UUID, then start a separate process:
+
+```sh
+uv run --locked python scripts/demo_history.py --inspect RUN_UUID
+```
+
+Replace RUN_UUID with the printed UUID. You can also start the API:
+
+```sh
+uv run --locked uvicorn kairo_api.main:create_app --factory --host 127.0.0.1 --port 8000
+```
+
+In another terminal, request
+`http://127.0.0.1:8000/api/v1/runs` or open the generated API docs at
+`http://127.0.0.1:8000/docs`. Stop and restart the API; the same run remains because
+its truth lives in PostgreSQL, not an in-memory list in the HTTP server.
+
+## 12. Learn from the tests and their limits
+
+```sh
+export KAIRO_TEST_DATABASE_URL="$KAIRO_DATABASE_URL"
+uv run --locked python scripts/check.py
+uv run --locked pytest tests/persistence --require-postgres -q
+```
+
+Tests without a database URL explicitly skip the PostgreSQL suite. The
+--require-postgres option makes a missing URL an error so a requested integration
+run cannot silently become a green set of skips. A configured but unavailable
+server fails tests; it is never replaced with SQLite.
+
+Read `tests/test_recording.py`: a controlled storage failure before tool dispatch
+prevents the file side effect; API outage handling avoids exposing connection
+exception details. Those are labeled doubles, not claims of database durability.
+
+Then read the actual PostgreSQL tests:
+
+- `tests/persistence/test_repository.py` writes/reads files while persisting history,
+  recreates the repository, injects an event-insert failure through a database
+  trigger to verify atomic rollback, checks terminal/stale-attempt rejection,
+  concurrent event ordering, redaction and durable caller cancellation.
+- `tests/persistence/test_migrations.py` downgrades/upgrades a disposable schema and
+  compares the resulting schema with ORM metadata.
+- `tests/persistence/test_api.py` inspects real stored rows through newly created API
+  instances and checks pagination, validation, 404s and absent mutation endpoints.
+- `tests/persistence/test_interruption.py` launches a real child execution, lets a
+  controlled tool write a file and block, kills that process, and inspects committed
+  history through a fresh repository. The unfinished write stays STARTED/uncertain.
+
+The interruption test proves retained history, not safe recovery. A database outage
+or crash can leave completion uncertain. M4 isolation, M5 ownership/leases and M6
+checkpoint reconciliation are still future work. There is no live-model evaluation,
+no dashboard and no claim about general coding-agent competence.
+
+Study checkpoint: explain what each test actually proves and propose one failure
+that it does not cover. For the killed tool, separate what the filesystem, last
+committed event and tool completion fields tell you. This is the most important
+reasoning exercise before implementing recovery later.

@@ -133,10 +133,21 @@ class ToolRegistry:
             execute,
         )
 
+    def side_effect(self, name: str) -> SideEffect:
+        binding = self._tools.get(name)
+        return binding.side_effect if binding else SideEffect.READ_ONLY
+
     def schemas_json(self) -> str:
         return "[" + ",".join(binding.descriptor for binding in self._tools.values()) + "]"
 
-    async def invoke(self, name: str, arguments_json: str, context: ToolContext) -> ToolExecution:
+    async def invoke(
+        self,
+        name: str,
+        arguments_json: str,
+        context: ToolContext,
+        *,
+        invocation_id: UUID | None = None,
+    ) -> ToolExecution:
         """Always return a record, including cancellation after handler cleanup.
 
         Cancellation is a recorded tool outcome; the enclosing runtime still
@@ -170,7 +181,7 @@ class ToolRegistry:
         except Exception:
             code = "TOOL_ERROR"
         return ToolExecution(
-            uuid4(),
+            invocation_id if invocation_id is not None else uuid4(),
             name,
             arguments_json,
             output,

@@ -6,8 +6,8 @@ Repository root: `/Users/somyadeeptarat/Desktop/Kairo`.
   to explicit user updates recorded in `docs/decisions/0004-solo-development.md`.
 - The project has one developer. Plan sequential work with review checkpoints;
   Codex assists with mentoring, implementation and review.
-- Current authorized scope: M2 followed by M3. Commit after M2 before implementing
-  M3, as explicitly requested. Do not implement M4 or later without a new request.
+- Current milestone: M3. M2 was committed as a291bfe before M3 implementation,
+  as explicitly requested. Do not implement M4 or later without a new request.
 - Keep all M0–M3 study explanations/checkpoints in `docs/learning/guide.md`.
   Do not create separate learning checklists or block implementation on study gates.
 - Explain concepts, alternatives, exact files and tests before implementing.

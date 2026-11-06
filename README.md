@@ -1,80 +1,94 @@
 # Kairo
 
 A local-first agent execution harness built for engineering understanding and
-reliable, inspectable execution. The authoritative specification is [prd.md](prd.md).
+reliable, inspectable execution. Product specification: [prd.md](prd.md).
 
-**Current scope: M2 tools; M3 persistence is authorized next.** The custom kernel
-runs typed tools with explicit workspace permissions. Demos use a scripted model;
-no live inference or command sandbox is claimed.
+Implemented through **M3**: a custom async kernel, typed workspace tools,
+PostgreSQL execution history, migrations and a read-only inspection API. Demos
+use a scripted model with real file operations and database records. Live Ollama
+inference, isolated command execution, workers, recovery and the dashboard are
+future milestones. No paid API or cloud service is required.
 
-## Start here
+All study explanations and checkpoints are in one [engineering guide](docs/learning/guide.md).
+There are no separate learning completion checklists. Architecture and validation
+history remain in [architecture notes](docs/architecture/overview.md),
+[ADRs](docs/decisions/0007-postgresql-history.md), and [milestone records](docs/milestones/M3.md).
 
-Read the single [M0–M3 engineering guide](docs/learning/guide.md) at your own pace.
-[Architecture](docs/architecture/overview.md), [state policy](docs/architecture/state-machine.md)
-and [milestone records](docs/milestones/M2.md) retain implementation evidence.
-
-## Local setup
-
-From this checkout (all other documentation uses repository-relative paths):
+## Python setup and local tools
 
 ```sh
 cd /Users/somyadeeptarat/Desktop/Kairo
-python3 --version
-uv --version
-git --version
 uv sync --locked
 uv run --locked python scripts/doctor.py
 uv run --locked python scripts/check.py
+uv run --locked python scripts/demo_tools.py
 ```
 
-Use Python 3.13.x and uv. This host already has both. `uv sync --locked` creates
-`/Users/somyadeeptarat/Desktop/Kairo/.venv` and installs the core package plus development tools;
-it needs network access on first installation, not a paid service. Subsequent
-checks can run offline once the locked packages are installed. uv may download
-Python if 3.13 is not installed; use `uv sync --locked --no-python-downloads` to
-require an existing interpreter instead.
+Use Python 3.13.x and uv. Setup installs the core/API packages and locked dependencies
+in `.venv`. The first install may need free downloads; cached dependencies can be
+used offline. Doctor checks CLI presence, not running service health. Without a
+test database URL, PostgreSQL integration tests are explicitly reported as skipped.
+The file-tool demo uses a disposable directory and performs no inference.
 
-Individual checks:
+## PostgreSQL and persisted demo
+
+Start/unpause the existing Docker-compatible runtime, then:
 
 ```sh
-uv run --locked ruff format --check .
-uv run --locked ruff check .
-uv run --locked mypy
-uv run --locked pytest
+docker compose -p kairo-m3 -f infrastructure/compose/compose.yaml up -d --wait
+export KAIRO_DATABASE_URL='postgresql+psycopg://kairo:kairo_local_only@127.0.0.1:55432/kairo'
+uv run --locked alembic upgrade head
+uv run --locked python scripts/demo_history.py
 ```
 
-`/Users/somyadeeptarat/Desktop/Kairo/scripts/doctor.py` reports required Python,
-Git and uv readiness, plus optional CLI presence. It does not check service health.
-Docker, PostgreSQL, Node and Ollama are not required for M2. Do not pull models,
-create containers, or install a frontend for this milestone. Optional manual
-service diagnostics, when those services are deliberately started later:
+The demo prints a run UUID. Read it back in a separate process:
 
 ```sh
-docker info
-ollama list
+uv run --locked python scripts/demo_history.py --inspect RUN_UUID
 ```
 
-There is no `.env.example` yet because no implemented component reads configuration
-from environment variables. Do not commit secrets or local `.env` files.
+Replace RUN_UUID with the actual printed value. `.env.example` documents configuration;
+Kairo does not automatically load `.env` files. These credentials are for the local
+loopback development database. Keep secrets and `.env` files out of Git.
+The Compose volume preserves data when the API or container stops. Use
+`docker compose -p kairo-m3 -f infrastructure/compose/compose.yaml stop` to stop the
+service while retaining data. Do not remove its volume if you need the records.
 
-## Scripted kernel demonstration
+## Inspection API
 
 ```sh
-uv run --locked python scripts/demo_kernel.py
+uv run --locked uvicorn kairo_api.main:create_app --factory --host 127.0.0.1 --port 8000
 ```
 
-This executes a three-response script and reports its real kernel outcome. It
-performs no inference, tools or external work. Tests also cover failure, limits
-and cancellation. Run `uv run --locked pytest tests/core -q` for core tests only.
-Run `uv run --locked python scripts/demo_tools.py` for real file I/O driven by a
-scripted model. See [the kernel decision](docs/decisions/0005-single-agent-kernel.md) for contracts,
-alternatives and cooperative cancellation limits. In-memory records do not survive
-process termination. M0 history remains in [its record](docs/milestones/M0.md).
+Open [API documentation](http://127.0.0.1:8000/docs). Implemented routes:
 
-## Contribution discipline
+- `GET /api/v1/runs?limit=100&offset=0`
+- `GET /api/v1/runs/{run_id}`
+- `GET /api/v1/runs/{run_id}/events?after=0&limit=100`
+- `GET /api/v1/runs/{run_id}/tools?limit=100&offset=0`
 
-This is a solo project, with Codex assisting as an engineering mentor. Define module
-contracts before implementation, work in small sequential steps, review each change,
-and run the checks before integration. The updated workflow is recorded in
-[ADR 0004](docs/decisions/0004-solo-development.md). Follow [AGENTS.md](AGENTS.md). Preserve `prd.md` as the product
-authority; record refinements and unresolved decisions in the architecture notes.
+This is a trusted-local read-only API; there are no placeholder submission/resume
+routes. Incomplete runs retain their last known state and uncertain effects,
+without automatic recovery or retries.
+
+## Full validation, including PostgreSQL
+
+```sh
+export KAIRO_TEST_DATABASE_URL="$KAIRO_DATABASE_URL"
+uv run --locked python scripts/check.py
+uv run --locked pytest tests/persistence --require-postgres -q
+```
+
+Integration tests migrate and remove only their own unique schemas in the selected
+test database. Use the dedicated local development database. `--require-postgres`
+rejects a missing URL; an unavailable configured server fails the tests.
+The suite covers actual commits, rollback, schema drift, API recreation and history
+retained after killing an executing process. Unit tests never depend on inference.
+
+## Development discipline
+
+One developer owns the project, with Codex assisting as mentor and implementation
+assistant. Work in small changes, explain contracts and test actual behavior.
+Follow [AGENTS.md](AGENTS.md). M2 was committed before M3 as `a291bfe`.
+Further milestones require an explicit request. Consolidated study is independent
+of implementation progress, as requested.

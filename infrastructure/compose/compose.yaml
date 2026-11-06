@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: kairo
+      POSTGRES_PASSWORD: kairo_local_only
+      POSTGRES_DB: kairo
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - kairo_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kairo -d kairo"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+volumes:
+  kairo_postgres:

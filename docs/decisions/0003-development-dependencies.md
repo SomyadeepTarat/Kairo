@@ -44,3 +44,11 @@ pytest-asyncio is deferred until async fixtures/composition justify its addition
 The earlier table's M1 pytest-asyncio entry was an expectation, not a requirement
 to add unused tooling. FastAPI, PostgreSQL and all other service dependencies
 remain deferred to their actual implementation milestones.
+
+## M2/M3 implementation update
+
+M2 introduced Pydantic for actual JSON tool schemas. M3 introduced SQLAlchemy with
+its asyncio extra (greenlet), psycopg binary, Alembic, FastAPI and uvicorn. HTTPX is
+a development dependency for ASGI/API tests. PostgreSQL 17 runs in local Compose;
+no live provider, hosted service or frontend dependency was added. Direct async
+tests still use asyncio.run, so pytest-asyncio remains unnecessary for this suite.

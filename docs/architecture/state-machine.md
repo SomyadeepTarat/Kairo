@@ -1,10 +1,10 @@
 # Initial run state machine specification
 
-The policy is implemented in M1 at `packages/core/src/kairo_core/state.py` and
-validated across all state pairs in `tests/core/test_state.py`. The M1 loop at
-`packages/core/src/kairo_core/runtime.py` uses only CREATED, QUEUED, RUNNING,
-COMPLETED, FAILED and CANCELLED. WAITING states and PAUSED remain future capabilities. Persistence belongs to M3; scheduler and recovery semantics arrive in M5/M6.
-All nine states from `prd.md` FR-02 are retained, even when features are deferred.
+The shared policy lives in `packages/core/src/kairo_core/state.py`; all state
+pairs are tested. The runtime uses CREATED, QUEUED, RUNNING, WAITING_FOR_TOOL,
+COMPLETED, FAILED and CANCELLED. Approval and pause/resume remain specifications,
+not implemented capabilities. M3 persists actual transitions and their events in
+one PostgreSQL transaction. Scheduling/recovery belong to M5/M6.
 
 | Source | Allowed targets | Cause / constraint |
 | --- | --- | --- |
@@ -55,12 +55,12 @@ edges from every nonterminal state.
 - Pause is cooperative at a safe step boundary, never arbitrary process suspension.
   If work is in flight, finish or reconcile it before acknowledging a pause.
 - Worker disappearance does not automatically mark FAILED or resume RUNNING.
-  Until M6 implements recovery, interrupted in-memory work is not recoverable.
-- Future concurrent updates require expected-state/version checks. At M3 a
-  transition and its durable event form one atomic database operation.
+  M3 retains committed history, but automatic execution recovery remains unimplemented.
+- Persisted transitions check expected source/current attempt under a per-run
+  row lock. State and its durable event form one atomic database operation.
 - No terminal-to-nonterminal transition; new retries get new run identities.
 
-## Required implementation tests at the relevant milestones
+## Validation and future boundaries
 
 M1: parameterize every source/target pair, reject every illegal edge, cover terminal
 immutability, step/deadline limits, and cancellation using deterministic models.
@@ -73,3 +73,8 @@ M2 update: WAITING_FOR_TOOL is now used by the runtime. Tool outcomes return to
 RUNNING unless cancelled, timed out by the runtime or uncertain. Unknown/invalid/
 denied calls are recorded without executing the denied handler. Approval and pause
 states remain future capabilities.
+
+M3 tests now cover transactional rollback, schema migration roundtrips, repository/API
+recreation, concurrent event sequencing and retained history after process termination.
+These do not establish M5 task-claim exclusivity or M6 safe recovery. Details and
+commands are in `docs/milestones/M3.md` and `docs/learning/guide.md`.
