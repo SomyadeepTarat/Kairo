@@ -1,104 +1,118 @@
 # Kairo
 
-A local-first agent execution harness built for engineering understanding and
-reliable, inspectable execution. Product specification: [prd.md](prd.md).
+A local-first agent execution harness for learning reliable, inspectable execution.
+Product specification: [prd.md](prd.md). No paid API or cloud service is required.
 
-Implemented through **M3**: a custom async kernel, typed workspace tools,
-PostgreSQL execution history, migrations and a read-only inspection API. Demos
-use a scripted model with real file operations and database records. Live Ollama
-inference, isolated command execution, workers, recovery and the dashboard are
-future milestones. No paid API or cloud service is required.
+Implemented through **M6**: custom async kernel, typed workspace tools, PostgreSQL
+history, restricted Docker commands, durable queue/local workers, checkpoints,
+bounded recovery and explicit uncertain-effect reconciliation. Demos use prescribed
+model responses with real file/container/database operations. Live Ollama inference,
+context compaction, multi-agent coordination and the dashboard remain future work.
 
-All study explanations and checkpoints are in one [engineering guide](docs/learning/guide.md).
-There are no separate learning completion checklists. Architecture and validation
-history remain in [architecture notes](docs/architecture/overview.md),
-[ADRs](docs/decisions/0007-postgresql-history.md), and [milestone records](docs/milestones/M3.md).
+Study at your own pace:
 
-## Python setup and local tools
+- [M0–M3 guide](docs/learning/guide.md)
+- [Separate M3–M6 guide](docs/learning/m3-m6.md)
+- [Architecture](docs/architecture/overview.md), [decisions](docs/decisions/0010-safe-recovery.md),
+  and [milestone validation records](docs/milestones/M6.md)
+
+There are no separate study completion checklists or learning gates.
+
+## Local setup
 
 ```sh
 cd /Users/somyadeeptarat/Desktop/Kairo
 uv sync --locked
-uv run --locked python scripts/doctor.py
-uv run --locked python scripts/check.py
-uv run --locked python scripts/demo_tools.py
-```
-
-Use Python 3.13.x and uv. Setup installs the core/API packages and locked dependencies
-in `.venv`. The first install may need free downloads; cached dependencies can be
-used offline. Doctor checks CLI presence, not running service health. Without a
-test database URL, PostgreSQL integration tests are explicitly reported as skipped.
-The file-tool demo uses a disposable directory and performs no inference.
-
-## PostgreSQL and persisted demo
-
-Start/unpause the existing Docker-compatible runtime, then:
-
-```sh
 docker compose -p kairo-m3 -f infrastructure/compose/compose.yaml up -d --wait
+docker build -t kairo-sandbox:local -f infrastructure/docker/Dockerfile.sandbox .
 export KAIRO_DATABASE_URL='postgresql+psycopg://kairo:kairo_local_only@127.0.0.1:55432/kairo'
 uv run --locked alembic upgrade head
-uv run --locked python scripts/demo_history.py
 ```
 
-The demo prints a run UUID. Read it back in a separate process:
+Use Python 3.13.x, uv and a running Docker-compatible local daemon on macOS ARM64.
+Initial free dependency/image downloads need network access. Task containers do not.
+`.env.example` documents values; Kairo does not automatically load `.env` files.
+These credentials are local-development values. PostgreSQL's named volume retains
+records across restarts. Stop the service without removing that volume when you
+need to conserve resources.
+
+## Queue a real container/filesystem demonstration
 
 ```sh
-uv run --locked python scripts/demo_history.py --inspect RUN_UUID
+uv run --locked python scripts/enqueue.py examples/scripted-job.json
+uv run --locked python scripts/worker.py --once --root .kairo/workspaces
 ```
 
-Replace RUN_UUID with the actual printed value. `.env.example` documents configuration;
-Kairo does not automatically load `.env` files. These credentials are for the local
-loopback development database. Keep secrets and `.env` files out of Git.
-The Compose volume preserves data when the API or container stops. Use
-`docker compose -p kairo-m3 -f infrastructure/compose/compose.yaml stop` to stop the
-service while retaining data. Do not remove its volume if you need the records.
+Enqueue prints a run UUID. The prescribed model sequence executes an explicitly
+approved container command, reads the resulting file and ends. Inspect the returned
+tool outcomes rather than treating the scripted final text as evidence of success.
+Managed workspaces are under `.kairo/workspaces/RUN_UUID` and ignored by Git.
 
-## Inspection API
+For a continuing service with two concurrent slots and automatic stale-lease reaping:
+
+```sh
+uv run --locked python scripts/worker.py --capacity 2 --root .kairo/workspaces
+```
+
+All local workers must share that root. Ctrl-C requests shutdown and joins cleanup.
+`--once` does one claim and does not run the periodic reaper. Workspaces and local
+locks prevent overlapping owners; containers have no host home/socket/secret mounts,
+no network, a readonly root, nonroot UID and resource/output/time limits.
+Exact argv approval is separate from the command permission.
+
+## Inspect and control
 
 ```sh
 uv run --locked uvicorn kairo_api.main:create_app --factory --host 127.0.0.1 --port 8000
+uv run --locked python scripts/demo_history.py --inspect RUN_UUID
 ```
 
-Open [API documentation](http://127.0.0.1:8000/docs). Implemented routes:
+Replace RUN_UUID with an actual ID. [Local API docs](http://127.0.0.1:8000/docs):
 
-- `GET /api/v1/runs?limit=100&offset=0`
-- `GET /api/v1/runs/{run_id}`
-- `GET /api/v1/runs/{run_id}/events?after=0&limit=100`
-- `GET /api/v1/runs/{run_id}/tools?limit=100&offset=0`
+- `GET /api/v1/runs`, run detail, `/events`, `/tools`, `/checkpoints`, and `/queue`.
+- `GET /api/v1/workers` and `/api/v1/workers/{worker_id}`.
+- `POST /api/v1/runs/{run_id}/cancel` acknowledges cancellation intent.
+- `POST /api/v1/runs/{run_id}/reconcile` records an explicit operator resolution.
 
-This is a trusted-local read-only API; there are no placeholder submission/resume
-routes. Incomplete runs retain their last known state and uncertain effects,
-without automatic recovery or retries.
+This is trusted-local control, without public authentication. Keep the binding on
+loopback. There are no placeholder submission/provider/approval/resume controls.
 
-## Full validation, including PostgreSQL
+Unknown mutations remain BLOCKED until investigated. Only when you can prove one
+invocation did not execute may you use:
+
+```sh
+uv run --locked python scripts/reconcile.py RUN_UUID TOOL_UUID \
+  --not-executed --reason 'Evidence that this invocation never reached its side effect'
+```
+
+Alternatively provide `--completed-output` with its known, schema-valid JSON result
+and an evidence reason. The decision is recorded and reaping checks ownership again.
+Do not use reconciliation merely to force progress. Blocked runs can be cancelled.
+The guide explains lost acknowledgments, partial effects and recovery limits.
+
+## Validation
 
 ```sh
 export KAIRO_TEST_DATABASE_URL="$KAIRO_DATABASE_URL"
+export KAIRO_TEST_DOCKER=1
 uv run --locked python scripts/check.py
-uv run --locked pytest tests/persistence --require-postgres -q
+uv run --locked pytest tests/persistence --require-postgres --require-docker -q
 ```
 
-Integration tests migrate and remove only their own unique schemas in the selected
-test database. Use the dedicated local development database. `--require-postgres`
-rejects a missing URL; an unavailable configured server fails the tests.
-The suite covers actual commits, rollback, schema drift, API recreation and history
-retained after killing an executing process. Unit tests never depend on inference.
+Tests migrate/drop only their uniquely owned schemas in the dedicated local test DB.
+The full suite includes real containers, competing claims, process termination,
+checkpoint gaps, no duplicate confirmed writes, reconciliation and bounded retries.
+Without service variables, those integration tests explicitly skip; require flags
+make missing configuration an error. Doctor checks CLI presence, not service health.
 
-## Development discipline
+Kernel-only and file-only demos remain `scripts/demo_kernel.py` and
+`scripts/demo_tools.py`; `scripts/demo_history.py` records a direct scripted run.
 
-One developer owns the project, with Codex assisting as mentor and implementation
-assistant. Work in small changes, explain contracts and test actual behavior.
-Follow [AGENTS.md](AGENTS.md). M2 was committed before M3 as `a291bfe`.
-Further milestones require an explicit request. Consolidated study is independent
-of implementation progress, as requested.
+## Scope and contribution
 
-M4–M6 work is authorized. The separate study guide is
-[docs/learning/m3-m6.md](docs/learning/m3-m6.md). M4 restricted container execution is implemented and validated. M5 and M6 will
-follow in sequence, each with tests and its own commit.
-
-M5 adds durable scripted-job submission and local workers:
-`uv run --locked python scripts/enqueue.py /absolute/path/to/job.json`, then
-`uv run --locked python scripts/worker.py --capacity 2`. Apply migrations first.
-Queue/cancellation and worker inspection routes are real; examples and ownership
-semantics are in the M3–M6 guide. M6 recovery is the next authorized step.
+One developer owns the project with Codex as mentor/implementation assistant.
+[AGENTS.md](AGENTS.md) records scope. Each new milestone gets relevant tests, notes
+and its requested commit. M4: `200ab42`; M5: `b227eec`; M6 adds validated checkpointed recovery and reconciliation.
+Stop at M6 unless another milestone is explicitly requested. There is no claim of
+exactly-once external effects, hostile-tenant security, distributed-host locking,
+complete secret detection or recovery from lost/externally changed workspace data.

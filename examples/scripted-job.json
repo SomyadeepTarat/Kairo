@@ -1,0 +1,28 @@
+{
+  "task": "Scripted command and file demonstration",
+  "approved_commands": [
+    [
+      "python",
+      "-c",
+      "from pathlib import Path; Path('hello.txt').write_text('hello from the sandbox'); print('wrote hello.txt')"
+    ]
+  ],
+  "max_steps": 3,
+  "max_attempts": 3,
+  "steps": [
+    {
+      "kind": "tool",
+      "name": "execute_command",
+      "arguments_json": "{\"argv\": [\"python\", \"-c\", \"from pathlib import Path; Path('hello.txt').write_text('hello from the sandbox'); print('wrote hello.txt')\"]}"
+    },
+    {
+      "kind": "tool",
+      "name": "read_file",
+      "arguments_json": "{\"path\":\"hello.txt\"}"
+    },
+    {
+      "kind": "final",
+      "text": "Scripted sequence ended; inspect the actual tool results."
+    }
+  ]
+}

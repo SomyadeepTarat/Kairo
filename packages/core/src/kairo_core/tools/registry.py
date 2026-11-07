@@ -95,6 +95,7 @@ class _Binding:
     timeout: float
     validate: Callable[[str], BaseModel]
     execute: Callable[[BaseModel, ToolContext], Awaitable[str]]
+    output_validate: Callable[[str], BaseModel]
 
 
 class ToolRegistry:
@@ -132,7 +133,14 @@ class ToolRegistry:
             tool.timeout_seconds,
             tool.input_schema.model_validate_json,
             execute,
+            tool.output_schema.model_validate_json,
         )
+
+    def validate_output(self, name: str, payload: str) -> str:
+        binding = self._tools.get(name)
+        if binding is None:
+            raise ValueError("Unknown tool output schema")
+        return binding.output_validate(payload).model_dump_json()
 
     def side_effect(self, name: str) -> SideEffect:
         binding = self._tools.get(name)

@@ -1,4 +1,4 @@
-"""Single-agent, in-memory execution. No tool dispatch or durable recovery."""
+"""Bounded custom kernel with typed tool dispatch and optional durable continuation."""
 
 import asyncio
 import json
@@ -9,6 +9,7 @@ from enum import StrEnum
 from time import monotonic
 from uuid import UUID, uuid4
 
+from kairo_core.checkpoints import KernelSnapshot
 from kairo_core.events import Recorder, event_now
 from kairo_core.models import (
     Continue,
@@ -144,6 +145,7 @@ async def run_agent(
     tool_context: ToolContext | None = None,
     recorder: Recorder | None = None,
     binding: RunBinding | None = None,
+    resume: KernelSnapshot | None = None,
 ) -> RunResult:
     """Execute a fresh run. Invalid caller inputs raise; execution failures return FAILED.
 
@@ -152,6 +154,8 @@ async def run_agent(
     Adapters must be cooperative; this is not process isolation.
     """
     require_text(task, "task")
+    if resume is not None and binding is None:
+        raise ValueError("Resume requires an explicitly bound existing attempt")
     if tools is not None and tool_context is None:
         raise ValueError("A tool registry requires a workspace context")
     config = config if config is not None else AgentConfig()
@@ -164,7 +168,30 @@ async def run_agent(
     steps: list[StepRecord] = []
     executions: list[ToolExecution] = []
     messages: tuple[Message, ...] = (Message("system", config.system_prompt), Message("user", task))
-    deadline = monotonic() + config.run_timeout_seconds
+    if resume is not None:
+        messages = resume.messages
+    budget_seconds = (
+        min(config.run_timeout_seconds, resume.remaining_seconds)
+        if resume
+        else config.run_timeout_seconds
+    )
+    deadline = monotonic() + budget_seconds
+
+    def snapshot(next_step: int, final_output: str | None = None) -> dict[str, object] | None:
+        remaining = deadline - monotonic()
+        if remaining <= 0:
+            return None
+        return KernelSnapshot(
+            messages=messages,
+            next_step=next_step,
+            remaining_seconds=remaining,
+            final_output=final_output,
+        ).model_dump(mode="json")
+
+    async def checkpoint(next_step: int, final_output: str | None = None) -> None:
+        state = snapshot(next_step, final_output)
+        if state is not None:
+            await emit("checkpoint_created", state)
 
     async def emit(kind: str, payload: dict[str, object]) -> None:
         if recorder is not None:
@@ -207,7 +234,11 @@ async def run_agent(
         if status is RunStatus.CREATED:
             await move(RunStatus.QUEUED)
         await move(RunStatus.RUNNING)
-        for number in range(1, config.max_steps + 1):
+        if resume is not None and resume.final_output is not None:
+            return await finish(RunStatus.COMPLETED, output=resume.final_output)
+        first_step = resume.next_step if resume else 1
+        await checkpoint(first_step)
+        for number in range(first_step, config.max_steps + 1):
             if cancellation.is_set():
                 return await finish(RunStatus.CANCELLED)
             remaining = deadline - monotonic()
@@ -360,12 +391,14 @@ async def run_agent(
                         ),
                     ),
                 )
-                await move(RunStatus.RUNNING)
+                await move(RunStatus.RUNNING, {"checkpoint": snapshot(number + 1)})
                 continue
             steps.append(StepRecord(request, response))
             messages += (Message("assistant", response.text),)
             if isinstance(response, Final):
+                await checkpoint(number, response.text)
                 return await finish(RunStatus.COMPLETED, output=response.text)
+            await checkpoint(number + 1)
         return await finish(
             RunStatus.FAILED, Failure(FailureCode.STEP_LIMIT, "Maximum model calls reached")
         )

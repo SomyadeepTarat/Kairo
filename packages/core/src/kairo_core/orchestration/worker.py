@@ -70,6 +70,15 @@ class Worker:
         if claim is None:
             return None
         with WorkspaceLock(self.workspaces.root, claim.binding.run_id):
+            continuation = await self.queue.continuation(claim)
+            path = self.workspaces.root / str(claim.binding.run_id)
+            if (
+                continuation is not None
+                and (not path.is_dir() or path.is_symlink())
+                and await self.queue.workspace_required(claim)
+            ):
+                await self.queue.block_owned(claim, "WORKSPACE_MISSING")
+                return None
             workspace = self.workspace(claim.binding.run_id)
             executor = DockerExecutor(
                 workspace,
@@ -98,6 +107,7 @@ class Worker:
                         executor,
                     ),
                     cancellation=cancellation,
+                    resume=continuation,
                 )
             )
             renewal = asyncio.create_task(renew())
@@ -119,12 +129,13 @@ class Worker:
     async def reap_expired(self) -> int:
         count = 0
         for claim in await self.queue.expired():
-            workspace = self.workspace(claim.binding.run_id)
-            executor = DockerExecutor(workspace, identity=claim.token)
+            path = self.workspaces.root / str(claim.binding.run_id)
+            existing = path.is_dir() and not path.is_symlink()
+            executor = DockerExecutor(self.workspaces.root, identity=claim.token)
             await executor.stop()
             try:
                 with WorkspaceLock(self.workspaces.root, claim.binding.run_id):
-                    await self.queue.finish_abandoned(claim)
+                    await self.queue.finish_abandoned(claim, workspace_exists=existing)
                     count += 1
             except (WorkspaceBusy, LeaseLost):
                 continue

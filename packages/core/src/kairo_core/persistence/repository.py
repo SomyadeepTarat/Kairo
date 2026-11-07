@@ -13,9 +13,18 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from kairo_core.checkpoints import KernelSnapshot
 from kairo_core.events import RuntimeEvent
 from kairo_core.persistence.redaction import redact_object
-from kairo_core.persistence.tables import AttemptRow, EventRow, JobRow, RunRow, TaskRow, ToolRow
+from kairo_core.persistence.tables import (
+    AttemptRow,
+    CheckpointRow,
+    EventRow,
+    JobRow,
+    RunRow,
+    TaskRow,
+    ToolRow,
+)
 from kairo_core.state import TERMINAL_STATES, RunStatus, transition
 
 
@@ -147,9 +156,11 @@ class RunRepository:
                 raise RecordConflict("Expected state does not match persisted state")
             row.status = transition(source, target)
             attempt.status = row.status
-            if target is RunStatus.RUNNING and row.started_at is None:
-                row.started_at = event.occurred_at
-                attempt.started_at = event.occurred_at
+            if target is RunStatus.RUNNING:
+                if row.started_at is None:
+                    row.started_at = event.occurred_at
+                if attempt.started_at is None:
+                    attempt.started_at = event.occurred_at
             if target in TERMINAL_STATES:
                 row.completed_at = event.occurred_at
                 attempt.ended_at = event.occurred_at
@@ -200,9 +211,24 @@ class RunRepository:
             "model_response",
             "model_failed",
             "cancel_requested",
+            "checkpoint_created",
         }:
             raise ValueError("Unsupported execution event")
         row.event_sequence += 1
+        state = payload if event.kind == "checkpoint_created" else payload.get("checkpoint")
+        if isinstance(state, dict):
+            state = KernelSnapshot.model_validate_json(json.dumps(state)).model_dump(mode="json")
+            session.add(
+                CheckpointRow(
+                    id=uuid4(),
+                    run_id=row.id,
+                    attempt_id=attempt.id,
+                    event_sequence=row.event_sequence,
+                    state=state,
+                    workspace_reference=str(row.id),
+                    created_at=event.occurred_at,
+                )
+            )
         session.add(
             EventRow(
                 id=uuid4(),

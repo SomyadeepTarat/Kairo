@@ -78,3 +78,18 @@ M3 tests now cover transactional rollback, schema migration roundtrips, reposito
 recreation, concurrent event sequencing and retained history after process termination.
 These do not establish M5 task-claim exclusivity or M6 safe recovery. Details and
 commands are in `docs/milestones/M3.md` and `docs/learning/guide.md`.
+
+## M5/M6 attempts and recovery
+
+Queued work now has a durable claim token, capacity limit and lease. Every queued
+runtime event is fenced in the same transaction as recording. Only expired/REAPING
+nonterminal work is eligible for recovery after container cleanup and local lock
+acquisition. A safe recovery ends the old attempt, creates a new attempt and records
+attempt_recovered with the old state, explicitly versioning its reset to QUEUED.
+This is not an additional ordinary transition edge; the pure state graph and its
+all-pairs tests remain unchanged. COMPLETED/FAILED/CANCELLED never resume.
+
+BLOCKED is a queue disposition, not another run lifecycle state. It preserves the
+last known run state while preventing claims until an explicit operator resolution
+or cancellation. Unknown mutations are not automatically retried. Checkpoints and
+later committed records determine continuation; step/time/attempt budgets are bounded.

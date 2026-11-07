@@ -79,3 +79,44 @@ Pydantic validates tool/HTTP data. SQLAlchemy asyncio and psycopg manage databas
 I/O; Alembic versions its structure. FastAPI/uvicorn expose inspection; HTTPX tests
 it. No agent framework owns orchestration, and no Redis, paid API or cloud service
 is introduced. Dependency choices are recorded in ADRs 0003, 0006 and 0007.
+
+## M4–M6 implemented extension
+
+The previous sections describe the M3 baseline. The implemented execution path now is:
+
+```mermaid
+flowchart TD
+    Submit[Typed scripted-job submission] --> Queue[(PostgreSQL jobs and workers)]
+    Queue --> Claim[Atomic claim: capacity lock and SKIP LOCKED]
+    Claim --> Worker[Local worker: lease heartbeat and workspace flock]
+    Worker --> Kernel[Custom kernel with bound run/attempt]
+    Kernel --> Tools[Typed tools and exact-command approval]
+    Tools --> Docker[Restricted Docker executor]
+    Kernel --> Fenced[Lease-fenced recording and checkpoints]
+    Fenced --> History[(Runs, attempts, events, tools, checkpoints)]
+    Queue --> Reaper[Fence expired owner, stop containers, acquire workspace lock]
+    Reaper --> Recover[Project proven context; bound retries/time]
+    Recover --> Queue
+    Recover --> Block[Block uncertain/missing/redacted state]
+    Block --> Operator[Explicit operator reconciliation or cancellation]
+    Operator --> Reaper
+```
+
+`execution/sandbox.py` implements container lifecycle and managed directories.
+`orchestration/queue.py`, `worker.py` and `recovery.py` implement local queue ownership,
+worker loops and safe continuation. Paths are under `packages/core/src/kairo_core/`.
+Migrations 0002/0003 introduce only the jobs/workers/checkpoints that now function.
+
+A queue token fences database records, not physical processes. The local flock and
+container-label cleanup prevent a stale process from overlapping a new workspace
+owner. Unavailable Docker or a held lock delays recovery rather than authorizing
+new work. All workers share one host/root. Recovery of a nonterminal run versions
+its attempt explicitly; terminal runs remain immutable. Confirmed tool records after
+a checkpoint advance context without repeating the action. Operator assertions are
+recorded and schema-checked, not independently proven by Kairo.
+
+The current API includes real queue/worker/checkpoint inspection, cancellation and
+explicit reconciliation. It still has no live provider, authenticated/public
+multi-user service, approval workflow, scheduler dependencies beyond PostgreSQL,
+context compaction, multi-agent orchestration or dashboard. The separate learning
+walkthrough and current limitations are in `docs/learning/m3-m6.md` and ADRs 0008–0010.

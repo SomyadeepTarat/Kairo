@@ -1,4 +1,4 @@
-"""Create a local inspection server; migrations and execution are explicit commands."""
+"""Local execution inspection, cancellation and explicit operator reconciliation."""
 
 import os
 from collections.abc import AsyncIterator
@@ -10,9 +10,11 @@ from uuid import UUID
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from kairo_core.orchestration.queue import Queue, workers
-from kairo_core.persistence.repository import RunRepository
+from kairo_core.persistence.repository import RecordConflict, RunRepository
+from kairo_core.persistence.tables import CheckpointRow
 from kairo_core.state import RunStatus
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 
@@ -60,6 +62,14 @@ class ToolView(BaseModel):
     completed_at: datetime | None
 
 
+class ReconcileRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    invocation_id: UUID
+    reason: str = Field(min_length=1, max_length=4096)
+    not_executed: bool = False
+    completed_output: str | None = None
+
+
 def create_app(repository: RunRepository | None = None) -> FastAPI:
     if repository is None:
         url = os.environ.get("KAIRO_DATABASE_URL")
@@ -75,7 +85,7 @@ def create_app(repository: RunRepository | None = None) -> FastAPI:
         finally:
             await repo.close()
 
-    app = FastAPI(title="Kairo execution inspection", version="0.3.0", lifespan=lifespan)
+    app = FastAPI(title="Kairo local execution control", version="0.6.0", lifespan=lifespan)
 
     @app.exception_handler(SQLAlchemyError)
     async def storage_error(request: Request, exc: SQLAlchemyError) -> JSONResponse:
@@ -140,5 +150,47 @@ def create_app(repository: RunRepository | None = None) -> FastAPI:
         if not rows:
             raise HTTPException(status_code=404, detail="Worker not found")
         return rows[0]
+
+    @app.get("/api/v1/runs/{run_id}/checkpoints")
+    async def get_checkpoints(
+        run_id: UUID,
+        after: Annotated[int, Query(ge=0)] = 0,
+        limit: Annotated[int, Query(ge=1, le=1000)] = 100,
+    ) -> list[dict[str, object]]:
+        await require_run(run_id)
+        async with repo.sessions() as session:
+            rows = await session.scalars(
+                select(CheckpointRow)
+                .where(CheckpointRow.run_id == run_id, CheckpointRow.event_sequence > after)
+                .order_by(CheckpointRow.event_sequence)
+                .limit(limit)
+            )
+            return [
+                {
+                    "id": row.id,
+                    "attempt_id": row.attempt_id,
+                    "event_sequence": row.event_sequence,
+                    "workspace_reference": row.workspace_reference,
+                    "state": row.state,
+                    "created_at": row.created_at,
+                }
+                for row in rows
+            ]
+
+    @app.post("/api/v1/runs/{run_id}/reconcile", status_code=202)
+    async def reconcile_run(run_id: UUID, request: ReconcileRequest) -> dict[str, bool]:
+        try:
+            await Queue(repo).reconcile(
+                run_id,
+                request.invocation_id,
+                reason=request.reason,
+                completed_output=request.completed_output,
+                not_executed=request.not_executed,
+            )
+        except (RecordConflict, ValueError) as exc:
+            raise HTTPException(
+                status_code=409, detail="Invalid reconciliation for this run/invocation"
+            ) from exc
+        return {"accepted": True}
 
     return app

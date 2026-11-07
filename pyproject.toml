@@ -1,7 +1,7 @@
 [project]
 name = "kairo"
 version = "0.0.0"
-description = "Local-first agent execution harness — M3 durable execution history"
+description = "Local-first agent execution harness — M6 checkpointed local execution"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "alembic>=1.14,<2",

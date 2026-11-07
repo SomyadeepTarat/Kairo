@@ -1,4 +1,4 @@
-"""PostgreSQL tables for M3; migrations, not create_all, own schema changes."""
+"""PostgreSQL execution, queue and checkpoint tables; migrations own schema changes."""
 
 from datetime import datetime
 from uuid import UUID
@@ -129,11 +129,29 @@ class JobRow(Base):
     available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     attempts: Mapped[int] = mapped_column(Integer)
+    max_attempts: Mapped[int] = mapped_column(Integer)
+    blocked_reason: Mapped[str | None] = mapped_column(Text)
+    resume_state: Mapped[dict[str, object] | None] = mapped_column(JSONB)
     __table_args__ = (
         CheckConstraint(
-            "state IN ('QUEUED','CLAIMED','REAPING','DONE','FAILED','CANCELLED')",
+            "state IN ('QUEUED','CLAIMED','REAPING','DONE','FAILED','CANCELLED','BLOCKED')",
             name="ck_job_state",
         ),
         CheckConstraint("attempts >= 0", name="ck_job_attempts"),
+        CheckConstraint("max_attempts >= 1 AND max_attempts <= 10", name="ck_job_max_attempts"),
         Index("ix_jobs_available", "state", "available_at", "run_id"),
+    )
+
+
+class CheckpointRow(Base):
+    __tablename__ = "checkpoints"
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    run_id: Mapped[UUID] = mapped_column(ForeignKey("runs.id"))
+    attempt_id: Mapped[UUID] = mapped_column(ForeignKey("run_attempts.id"))
+    event_sequence: Mapped[int] = mapped_column(Integer)
+    state: Mapped[dict[str, object]] = mapped_column(JSONB)
+    workspace_reference: Mapped[str] = mapped_column(String(36))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        UniqueConstraint("run_id", "event_sequence", name="uq_checkpoint_run_sequence"),
     )

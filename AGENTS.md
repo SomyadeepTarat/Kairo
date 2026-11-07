@@ -6,7 +6,8 @@ Repository root: `/Users/somyadeeptarat/Desktop/Kairo`.
   to explicit user updates recorded in `docs/decisions/0004-solo-development.md`.
 - The project has one developer. Plan sequential work with review checkpoints;
   Codex assists with mentoring, implementation and review.
-- Authorized scope: M4, M5 and M6, with a commit after each completed milestone.
+- Current milestone: M6. M4 (200ab42), M5 (b227eec), and M6 were authorized with
+  a commit after each validated milestone. Stop at M6 until a new request.
   Do not implement M7 or later without a new request.
 - Preserve M0–M3 study in `docs/learning/guide.md`; consolidate the new M3–M6
   material in `docs/learning/m3-m6.md`.

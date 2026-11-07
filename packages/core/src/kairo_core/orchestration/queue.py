@@ -10,11 +10,12 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from kairo_core.checkpoints import KernelSnapshot
 from kairo_core.events import RuntimeEvent, event_now
 from kairo_core.orchestration.spec import JobSpec
 from kairo_core.persistence.redaction import redact_object
 from kairo_core.persistence.repository import RecordConflict, RunRepository
-from kairo_core.persistence.tables import JobRow, RunRow, WorkerRow
+from kairo_core.persistence.tables import JobRow, RunRow, ToolRow, WorkerRow
 from kairo_core.runtime import RunBinding
 from kairo_core.state import TERMINAL_STATES, RunStatus
 
@@ -76,6 +77,7 @@ class Queue:
                     available_at=now,
                     created_at=now,
                     attempts=0,
+                    max_attempts=spec.max_attempts,
                 )
             )
         return run_id
@@ -174,14 +176,14 @@ class Queue:
             run = await session.get(RunRow, run_id)
             assert run is not None
             job.cancel_requested = True
-            if job.state == "QUEUED":
+            if job.state in {"QUEUED", "BLOCKED"}:
                 await self.repo.record_in_transaction(
                     session,
                     event_now(
                         run.id,
                         run.current_attempt_id,
                         "state_transition",
-                        '{"source":"QUEUED","target":"CANCELLED"}',
+                        json.dumps({"source": run.status, "target": "CANCELLED"}),
                     ),
                 )
                 job.state = "CANCELLED"
@@ -219,35 +221,114 @@ class Queue:
                 )
             return claims
 
-    async def finish_abandoned(self, claim: Claim) -> None:
-        """M5 conservatively fails abandoned work; M6 adds explicit safe recovery."""
+    async def finish_abandoned(self, claim: Claim, *, workspace_exists: bool = True) -> None:
+        from kairo_core.orchestration.recovery import recover
+
+        await recover(self, claim, workspace_exists=workspace_exists)
+
+    async def block_owned(self, claim: Claim, reason: str) -> None:
+        from kairo_core.orchestration.recovery import control_event
+
         async with self.repo.sessions.begin() as session:
-            job = await session.scalar(
-                select(JobRow).where(JobRow.run_id == claim.binding.run_id).with_for_update()
+            job = await self.owned(session, claim)
+            run = await session.scalar(
+                select(RunRow).where(RunRow.id == job.run_id).with_for_update()
             )
-            if job is None or job.state != "REAPING" or job.token != claim.token:
-                raise LeaseLost("Abandoned work was already handled")
+            assert run is not None
+            job.state, job.blocked_reason = "BLOCKED", reason
+            await control_event(
+                session,
+                run,
+                run.current_attempt_id,
+                "recovery_blocked",
+                {"reason": reason},
+                await database_now(session),
+            )
+
+    async def workspace_required(self, claim: Claim) -> bool:
+        async with self.repo.sessions.begin() as session:
+            job = await self.owned(session, claim)
             run = await session.get(RunRow, job.run_id)
             assert run is not None
-            await self.repo.record_in_transaction(
-                session,
-                event_now(
-                    run.id,
-                    run.current_attempt_id,
-                    "state_transition",
-                    json.dumps(
-                        {
-                            "source": run.status,
-                            "target": "FAILED",
-                            "failure": {
-                                "code": "LEASE_EXPIRED",
-                                "detail": "Owner lost; no automatic retry",
-                            },
-                        }
-                    ),
-                ),
+            # A claimant can die before ever allocating or starting its workspace.
+            return run.started_at is not None
+
+    async def continuation(self, claim: Claim) -> KernelSnapshot | None:
+        async with self.repo.sessions.begin() as session:
+            job = await self.owned(session, claim)
+            if job.resume_state is None:
+                return None
+            state = KernelSnapshot.model_validate_json(json.dumps(job.resume_state))
+            run = await session.get(RunRow, job.run_id)
+            assert run is not None
+            remaining = state.remaining_seconds
+            if run.started_at is not None:
+                end = run.started_at + timedelta(seconds=claim.spec.run_timeout_seconds)
+                remaining = min(
+                    remaining, max(0, (end - await database_now(session)).total_seconds())
+                )
+            return state.model_copy(update={"remaining_seconds": remaining})
+
+    async def reconcile(
+        self,
+        run_id: UUID,
+        invocation_id: UUID,
+        *,
+        reason: str,
+        completed_output: str | None = None,
+        not_executed: bool = False,
+    ) -> None:
+        from kairo_core.orchestration.recovery import control_event
+        from kairo_core.tools import builtin_registry
+
+        if (
+            not reason.strip()
+            or len(reason) > 4096
+            or (completed_output is not None) == not_executed
+        ):
+            raise ValueError("Provide a reason and exactly one resolution")
+        async with self.repo.sessions.begin() as session:
+            job = await session.scalar(
+                select(JobRow).where(JobRow.run_id == run_id).with_for_update()
             )
-            job.state = "FAILED"
+            if job is None or job.state != "BLOCKED" or job.blocked_reason != "UNCERTAIN_TOOL":
+                raise RecordConflict("Run is not awaiting uncertain-tool reconciliation")
+            run = await session.scalar(select(RunRow).where(RunRow.id == run_id).with_for_update())
+            tool = await session.get(ToolRow, invocation_id)
+            if (
+                run is None
+                or tool is None
+                or tool.run_id != run_id
+                or tool.attempt_id != run.current_attempt_id
+                or not tool.outcome_uncertain
+            ):
+                raise RecordConflict("Invocation is not uncertain in this run")
+            output = (
+                None
+                if completed_output is None
+                else builtin_registry().validate_output(tool.tool_name, completed_output)
+            )
+            now = await database_now(session)
+            tool.status = "FAILED" if not_executed else "COMPLETED"
+            tool.error_code = "RECONCILED_NOT_EXECUTED" if not_executed else None
+            tool.output_json = (
+                str(redact_object({"value": output})["value"]) if output is not None else None
+            )
+            tool.completed_at, tool.outcome_uncertain = now, False
+            payload: dict[str, object] = {
+                "id": str(tool.id),
+                "name": tool.tool_name,
+                "status": tool.status,
+                "output_json": tool.output_json,
+                "error_code": tool.error_code,
+                "outcome_uncertain": False,
+                "retry": not_executed,
+                "reason": reason,
+            }
+            await control_event(
+                session, run, run.current_attempt_id, "tool_reconciled", redact_object(payload), now
+            )
+            job.state, job.blocked_reason = "REAPING", None
 
     async def get(self, run_id: UUID) -> dict[str, object] | None:
         async with self.repo.sessions() as session:
@@ -261,6 +342,9 @@ class Queue:
                 "lease_until": job.lease_until,
                 "cancel_requested": job.cancel_requested,
                 "attempts": job.attempts,
+                "max_attempts": job.max_attempts,
+                "blocked_reason": job.blocked_reason,
+                "available_at": job.available_at,
             }
 
 

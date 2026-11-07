@@ -75,7 +75,7 @@ def test_stale_lease_is_fenced_before_reaping(database_url: str) -> None:
     async def scenario() -> None:
         repo = storage(database_url)
         queue = Queue(repo, 0.2)
-        identity = await queue.enqueue(spec())
+        identity = await queue.enqueue(spec().model_copy(update={"max_attempts": 1}))
         worker = uuid4()
         await queue.register(worker, 1)
         claim = await queue.claim(worker)
@@ -329,7 +329,9 @@ def test_killed_worker_is_fenced_and_its_container_is_removed(
             row.lease_until = datetime.now(UTC) - timedelta(seconds=1)
         assert await Worker(queue, root).reap_expired() == 1
         snapshot = await repo.get_run(identity)
-        assert snapshot is not None and snapshot["status"] == "FAILED"
+        assert snapshot is not None and snapshot["status"] == "WAITING_FOR_TOOL"
+        state = await queue.get(identity)
+        assert state is not None and state["state"] == "BLOCKED"
         remaining = await docker("ps", "-aq", "--filter", f"label=kairo.execution={token}")
         assert not remaining.stdout.strip()
         assert len(await repo.tools(identity)) == 1
