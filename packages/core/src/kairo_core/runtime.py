@@ -79,6 +79,12 @@ class StateChange:
 
 
 @dataclass(frozen=True)
+class RunBinding:
+    run_id: UUID
+    attempt_id: UUID
+
+
+@dataclass(frozen=True)
 class RunResult:
     run_id: UUID
     attempt_id: UUID
@@ -137,6 +143,7 @@ async def run_agent(
     tools: ToolRegistry | None = None,
     tool_context: ToolContext | None = None,
     recorder: Recorder | None = None,
+    binding: RunBinding | None = None,
 ) -> RunResult:
     """Execute a fresh run. Invalid caller inputs raise; execution failures return FAILED.
 
@@ -149,8 +156,10 @@ async def run_agent(
         raise ValueError("A tool registry requires a workspace context")
     config = config if config is not None else AgentConfig()
     cancellation = cancellation if cancellation is not None else asyncio.Event()
-    run_id, attempt_id = uuid4(), uuid4()
-    status = RunStatus.CREATED
+    if binding is not None and recorder is None:
+        raise ValueError("An existing run binding requires a recorder")
+    run_id, attempt_id = (binding.run_id, binding.attempt_id) if binding else (uuid4(), uuid4())
+    status = RunStatus.QUEUED if binding else RunStatus.CREATED
     changes: list[StateChange] = []
     steps: list[StepRecord] = []
     executions: list[ToolExecution] = []
@@ -195,7 +204,8 @@ async def run_agent(
     try:
         if cancellation.is_set():
             return await finish(RunStatus.CANCELLED)
-        await move(RunStatus.QUEUED)
+        if status is RunStatus.CREATED:
+            await move(RunStatus.QUEUED)
         await move(RunStatus.RUNNING)
         for number in range(1, config.max_steps + 1):
             if cancellation.is_set():

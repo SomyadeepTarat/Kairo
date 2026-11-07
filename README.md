@@ -96,3 +96,9 @@ of implementation progress, as requested.
 M4–M6 work is authorized. The separate study guide is
 [docs/learning/m3-m6.md](docs/learning/m3-m6.md). M4 restricted container execution is implemented and validated. M5 and M6 will
 follow in sequence, each with tests and its own commit.
+
+M5 adds durable scripted-job submission and local workers:
+`uv run --locked python scripts/enqueue.py /absolute/path/to/job.json`, then
+`uv run --locked python scripts/worker.py --capacity 2`. Apply migrations first.
+Queue/cancellation and worker inspection routes are real; examples and ownership
+semantics are in the M3–M6 guide. M6 recovery is the next authorized step.

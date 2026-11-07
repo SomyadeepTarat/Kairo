@@ -105,3 +105,35 @@ class ToolRow(Base):
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (Index("ix_tools_run_started_id", "run_id", "started_at", "id"),)
+
+
+class WorkerRow(Base):
+    __tablename__ = "workers"
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    capacity: Mapped[int] = mapped_column(Integer)
+    heartbeat_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("capacity > 0 AND capacity <= 32", name="ck_worker_capacity"),
+    )
+
+
+class JobRow(Base):
+    __tablename__ = "jobs"
+    run_id: Mapped[UUID] = mapped_column(ForeignKey("runs.id"), primary_key=True)
+    spec: Mapped[dict[str, object]] = mapped_column(JSONB)
+    state: Mapped[str] = mapped_column(String(32))
+    worker_id: Mapped[UUID | None] = mapped_column(ForeignKey("workers.id"))
+    token: Mapped[UUID | None] = mapped_column(Uuid)
+    lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    cancel_requested: Mapped[bool] = mapped_column(Boolean)
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    attempts: Mapped[int] = mapped_column(Integer)
+    __table_args__ = (
+        CheckConstraint(
+            "state IN ('QUEUED','CLAIMED','REAPING','DONE','FAILED','CANCELLED')",
+            name="ck_job_state",
+        ),
+        CheckConstraint("attempts >= 0", name="ck_job_attempts"),
+        Index("ix_jobs_available", "state", "available_at", "run_id"),
+    )

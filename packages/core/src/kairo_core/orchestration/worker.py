@@ -1,0 +1,163 @@
+"""A local worker owns a DB lease and a filesystem lock, then runs the custom kernel."""
+
+import asyncio
+import fcntl
+import logging
+import os
+from collections.abc import Callable
+from pathlib import Path
+from typing import Self
+from uuid import UUID, uuid4
+
+from kairo_core.execution.sandbox import DockerExecutor, Workspaces
+from kairo_core.models import Model
+from kairo_core.orchestration.queue import LeaseLost, LeaseRecorder, Queue
+from kairo_core.orchestration.spec import JobSpec
+from kairo_core.runtime import RunResult, run_agent
+from kairo_core.tools import builtin_registry
+from kairo_core.tools.registry import ToolContext
+
+
+class WorkspaceBusy(RuntimeError):
+    pass
+
+
+class WorkspaceLock:
+    def __init__(self, root: Path, identity: UUID) -> None:
+        directory = root / ".locks"
+        directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+        self.path = directory / str(identity)
+        self.fd: int | None = None
+
+    def __enter__(self) -> Self:
+        fd = os.open(self.path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            os.close(fd)
+            raise WorkspaceBusy("An old local execution still owns the workspace") from None
+        self.fd = fd
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        if self.fd is not None:
+            os.close(self.fd)
+            self.fd = None
+
+
+class Worker:
+    def __init__(
+        self,
+        queue: Queue,
+        root: Path,
+        *,
+        capacity: int = 1,
+        model_factory: Callable[[JobSpec], Model] | None = None,
+    ) -> None:
+        if not 1 <= capacity <= 32:
+            raise ValueError("Invalid worker capacity")
+        self.queue, self.workspaces, self.capacity = queue, Workspaces(root), capacity
+        self.id = uuid4()
+        self.model_factory = model_factory or (lambda spec: spec.build_model())
+
+    def workspace(self, identity: UUID) -> Path:
+        path = self.workspaces.root / str(identity)
+        return self.workspaces.get(identity) if path.exists() else self.workspaces.create(identity)
+
+    async def work_once(self) -> RunResult | None:
+        await self.queue.register(self.id, self.capacity)
+        claim = await self.queue.claim(self.id)
+        if claim is None:
+            return None
+        with WorkspaceLock(self.workspaces.root, claim.binding.run_id):
+            workspace = self.workspace(claim.binding.run_id)
+            executor = DockerExecutor(
+                workspace,
+                identity=claim.token,
+                approved_commands=frozenset(tuple(argv) for argv in claim.spec.approved_commands),
+            )
+            cancellation = asyncio.Event()
+
+            async def renew() -> None:
+                while True:
+                    await asyncio.sleep(self.queue.lease_seconds / 3)
+                    if await self.queue.heartbeat(claim):
+                        cancellation.set()
+
+            execution = asyncio.create_task(
+                run_agent(
+                    claim.spec.task,
+                    self.model_factory(claim.spec),
+                    claim.spec.config(),
+                    binding=claim.binding,
+                    recorder=LeaseRecorder(self.queue, claim),
+                    tools=builtin_registry(),
+                    tool_context=ToolContext(
+                        workspace,
+                        frozenset({"workspace.read", "workspace.write", "command.execute"}),
+                        executor,
+                    ),
+                    cancellation=cancellation,
+                )
+            )
+            renewal = asyncio.create_task(renew())
+            try:
+                done, _ = await asyncio.wait(
+                    (execution, renewal), return_when=asyncio.FIRST_COMPLETED
+                )
+                if execution in done:
+                    return execution.result()
+                renewal.result()  # Lease/storage failure must cancel local execution.
+                raise LeaseLost("Lease renewal stopped")
+            finally:
+                renewal.cancel()
+                if not execution.done():
+                    execution.cancel()
+                await asyncio.gather(execution, renewal, return_exceptions=True)
+                await executor.stop()
+
+    async def reap_expired(self) -> int:
+        count = 0
+        for claim in await self.queue.expired():
+            workspace = self.workspace(claim.binding.run_id)
+            executor = DockerExecutor(workspace, identity=claim.token)
+            await executor.stop()
+            try:
+                with WorkspaceLock(self.workspaces.root, claim.binding.run_id):
+                    await self.queue.finish_abandoned(claim)
+                    count += 1
+            except (WorkspaceBusy, LeaseLost):
+                continue
+        return count
+
+    async def run(self, stop: asyncio.Event) -> None:
+        async def slot() -> None:
+            while not stop.is_set():
+                try:
+                    await self.work_once()
+                except Exception as exc:
+                    logging.error("Worker iteration failed: %s", type(exc).__name__)
+                try:
+                    await asyncio.wait_for(stop.wait(), timeout=0.25)
+                except TimeoutError:
+                    pass
+
+        async def reap() -> None:
+            while not stop.is_set():
+                try:
+                    await self.reap_expired()
+                except Exception as exc:
+                    logging.error("Reaper failed: %s", type(exc).__name__)
+                try:
+                    await asyncio.wait_for(stop.wait(), timeout=1)
+                except TimeoutError:
+                    pass
+
+        tasks = [asyncio.create_task(slot()) for _ in range(self.capacity)]
+        tasks.append(asyncio.create_task(reap()))
+        try:
+            await stop.wait()
+        finally:
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)

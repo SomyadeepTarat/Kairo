@@ -9,6 +9,7 @@ from uuid import UUID
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
+from kairo_core.orchestration.queue import Queue, workers
 from kairo_core.persistence.repository import RunRepository
 from kairo_core.state import RunStatus
 from pydantic import BaseModel
@@ -114,5 +115,30 @@ def create_app(repository: RunRepository | None = None) -> FastAPI:
     ) -> list[dict[str, object]]:
         await require_run(run_id)
         return await repo.tools(run_id, limit, offset)
+
+    @app.get("/api/v1/runs/{run_id}/queue")
+    async def get_queue(run_id: UUID) -> dict[str, object]:
+        row = await Queue(repo).get(run_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail="Queued run not found")
+        return row
+
+    @app.post("/api/v1/runs/{run_id}/cancel", status_code=202)
+    async def cancel_run(run_id: UUID) -> dict[str, bool]:
+        try:
+            return {"accepted": await Queue(repo).cancel(run_id)}
+        except KeyError:
+            raise HTTPException(status_code=404, detail="Queued run not found") from None
+
+    @app.get("/api/v1/workers")
+    async def get_workers() -> list[dict[str, object]]:
+        return await workers(Queue(repo))
+
+    @app.get("/api/v1/workers/{worker_id}")
+    async def get_worker(worker_id: UUID) -> dict[str, object]:
+        rows = await workers(Queue(repo), worker_id)
+        if not rows:
+            raise HTTPException(status_code=404, detail="Worker not found")
+        return rows[0]
 
     return app
