@@ -6,9 +6,10 @@ Repository root: `/Users/somyadeeptarat/Desktop/Kairo`.
   to explicit user updates recorded in `docs/decisions/0004-solo-development.md`.
 - The project has one developer. Plan sequential work with review checkpoints;
   Codex assists with mentoring, implementation and review.
-- Current milestone: M3. M2 was committed as a291bfe before M3 implementation,
-  as explicitly requested. Do not implement M4 or later without a new request.
-- Keep all M0–M3 study explanations/checkpoints in `docs/learning/guide.md`.
+- Authorized scope: M4, M5 and M6, with a commit after each completed milestone.
+  Do not implement M7 or later without a new request.
+- Preserve M0–M3 study in `docs/learning/guide.md`; consolidate the new M3–M6
+  material in `docs/learning/m3-m6.md`.
   Do not create separate learning checklists or block implementation on study gates.
 - Explain concepts, alternatives, exact files and tests before implementing.
 - Keep local ARM64 development free of mandatory paid APIs/cloud services.

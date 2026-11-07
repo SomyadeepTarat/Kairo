@@ -31,7 +31,8 @@ where = ["packages/core/src", "apps/api/src"]
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-ra --strict-config --strict-markers"
-markers = ["postgres: requires KAIRO_TEST_DATABASE_URL and a real PostgreSQL server"]
+markers = ["postgres: requires KAIRO_TEST_DATABASE_URL and a real PostgreSQL server",
+    "docker: requires KAIRO_TEST_DOCKER=1 and the local sandbox image"]
 
 [tool.ruff]
 target-version = "py313"

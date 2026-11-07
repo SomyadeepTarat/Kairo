@@ -92,3 +92,7 @@ assistant. Work in small changes, explain contracts and test actual behavior.
 Follow [AGENTS.md](AGENTS.md). M2 was committed before M3 as `a291bfe`.
 Further milestones require an explicit request. Consolidated study is independent
 of implementation progress, as requested.
+
+M4–M6 work is authorized. The separate study guide is
+[docs/learning/m3-m6.md](docs/learning/m3-m6.md). M4 restricted container execution is implemented and validated. M5 and M6 will
+follow in sequence, each with tests and its own commit.

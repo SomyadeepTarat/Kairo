@@ -55,9 +55,10 @@ class ToolContext:
 
 
 class ToolError(Exception):
-    def __init__(self, code: str, message: str) -> None:
+    def __init__(self, code: str, message: str, *, side_effect_possible: bool = True) -> None:
         super().__init__(message)
         self.code = code
+        self.side_effect_possible = side_effect_possible
 
 
 @dataclass(frozen=True)
@@ -174,6 +175,8 @@ class ToolRegistry:
             code = "INVALID_INPUT" if not invoked else "INVALID_OUTPUT"
         except ToolError as exc:
             code = exc.code
+            if not exc.side_effect_possible:
+                invoked = False
         except TimeoutError:
             status, code = ToolStatus.TIMED_OUT, "TOOL_TIMEOUT"
         except asyncio.CancelledError:
