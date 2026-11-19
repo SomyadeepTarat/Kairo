@@ -151,7 +151,7 @@ async def _await_operation[T](
         await asyncio.gather(*tasks, return_exceptions=True)
 
 
-async def run_agent(
+async def _run_agent(
     task: str,
     model: Model,
     config: AgentConfig | None = None,
@@ -447,3 +447,37 @@ async def run_agent(
         if status not in TERMINAL_STATES:
             await finish(RunStatus.CANCELLED)
         raise
+
+
+async def run_agent(
+    task: str,
+    model: Model,
+    config: AgentConfig | None = None,
+    *,
+    cancellation: asyncio.Event | None = None,
+    tools: ToolRegistry | None = None,
+    tool_context: ToolContext | None = None,
+    recorder: Recorder | None = None,
+    binding: RunBinding | None = None,
+    resume: KernelSnapshot | None = None,
+) -> RunResult:
+    """Instrument a bounded kernel execution without changing its execution contracts."""
+    from kairo_core.observability import TraceRecorder
+
+    if binding is not None and recorder is None:
+        raise ValueError("An existing run binding requires a recorder")
+    traced = recorder if isinstance(recorder, TraceRecorder) else TraceRecorder(recorder)
+    try:
+        return await _run_agent(
+            task,
+            model,
+            config,
+            cancellation=cancellation,
+            tools=tools,
+            tool_context=tool_context,
+            recorder=traced,
+            binding=binding,
+            resume=resume,
+        )
+    finally:
+        traced.close()

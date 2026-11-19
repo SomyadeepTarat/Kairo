@@ -216,7 +216,11 @@ class RunRepository:
         }:
             raise ValueError("Unsupported execution event")
         row.event_sequence += 1
-        state = payload if event.kind == "checkpoint_created" else payload.get("checkpoint")
+        state = (
+            {key: value for key, value in payload.items() if key != "telemetry"}
+            if event.kind == "checkpoint_created"
+            else payload.get("checkpoint")
+        )
         if isinstance(state, dict):
             state = KernelSnapshot.model_validate_json(json.dumps(state)).model_dump(mode="json")
             session.add(

@@ -9,6 +9,7 @@ from uuid import UUID
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
+from kairo_core.observability import inspect_trace
 from kairo_core.orchestration.queue import Queue, workers
 from kairo_core.orchestration.workflows import Workflows, WorkflowSpec
 from kairo_core.persistence.repository import RecordConflict, RunRepository
@@ -193,6 +194,13 @@ def create_app(repository: RunRepository | None = None) -> FastAPI:
                 status_code=409, detail="Invalid reconciliation for this run/invocation"
             ) from exc
         return {"accepted": True}
+
+    @app.get("/api/v1/runs/{run_id}/trace")
+    async def get_trace(run_id: UUID) -> dict[str, object]:
+        result = await inspect_trace(repo, run_id)
+        if result is None:
+            raise HTTPException(status_code=404, detail="Run not found")
+        return result
 
     @app.post("/api/v1/workflows", status_code=201)
     async def submit_workflow(spec: WorkflowSpec) -> dict[str, UUID]:

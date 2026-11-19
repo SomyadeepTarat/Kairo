@@ -126,3 +126,8 @@ M8: after migrating PostgreSQL, run the explicitly scripted role example with
 The planner validates a dependency graph; executors use real files; review/handoffs
 are durable. API: POST `/api/v1/workflows`, GET `/api/v1/workflows/{id}`, POST
 `/api/v1/workflows/{id}/advance`. See ADR 0012 for the fresh-workspace revision policy.
+
+M9: GET `/api/v1/runs/{id}/trace` or run
+`uv run --locked python scripts/trace.py RUN_UUID` for measured span timing,
+failure codes, retries and unfinished operations. OpenTelemetry SDK instrumentation
+runs locally without a collector. Unknown provider token usage remains null.

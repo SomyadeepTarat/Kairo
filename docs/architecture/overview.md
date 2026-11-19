@@ -136,3 +136,11 @@ A locked workflow row and transactional queue insertion prevent duplicate delega
 Independent workspaces/context prevent silent cross-agent mutation. Handoffs carry
 bounded evidence. Planner/reviewer permissions are empty in worker execution.
 See ADR 0012 for bounded revisions, blocked children and coordinator tick behavior.
+
+## M9 observability boundary
+
+`observability.TraceRecorder` decorates persistence without moving orchestration into
+OTel. Each attempt owns model/tool spans; durable events store timings/correlation.
+`inspect_trace()` exposes measured metrics/failures and incomplete spans. A virtual
+run parent correlates attempts; workflow handoffs link child run traces. No exporter
+or collector is mandatory. ADR 0013 defines timing and durability limitations.
