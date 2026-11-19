@@ -10,6 +10,7 @@ from time import monotonic
 from uuid import UUID, uuid4
 
 from kairo_core.checkpoints import KernelSnapshot
+from kairo_core.context import ContextOverflow, ContextPolicy, assemble
 from kairo_core.events import Recorder, event_now
 from kairo_core.models import (
     Continue,
@@ -32,7 +33,12 @@ class AgentConfig:
     run_timeout_seconds: float = 120.0
     system_prompt: str = "Complete the task within the supplied execution limits."
 
+    context_budget_bytes: int = 65536
+    tool_output_bytes: int = 8192
+    context_strategy: str = "recent"
+
     def __post_init__(self) -> None:
+        self.context_policy()
         if type(self.max_steps) is not int or self.max_steps <= 0:
             raise ValueError("max_steps must be a positive integer")
         for name, value in (
@@ -48,8 +54,18 @@ class AgentConfig:
                 raise ValueError(f"{name} must be finite and positive")
         require_text(self.system_prompt, "system_prompt")
 
+    def context_policy(self) -> ContextPolicy:
+        from typing import Literal, cast
+
+        return ContextPolicy(
+            self.context_budget_bytes,
+            self.tool_output_bytes,
+            cast(Literal["recent", "compact"], self.context_strategy),
+        )
+
 
 class FailureCode(StrEnum):
+    CONTEXT_LIMIT = "CONTEXT_LIMIT"
     STEP_LIMIT = "STEP_LIMIT"
     STEP_TIMEOUT = "STEP_TIMEOUT"
     RUN_DEADLINE = "RUN_DEADLINE"
@@ -246,10 +262,35 @@ async def run_agent(
                 return await finish(
                     RunStatus.FAILED, Failure(FailureCode.RUN_DEADLINE, "Run deadline exhausted")
                 )
-            request = ModelRequest(messages, number, tools.schemas_json() if tools else "[]")
+            schemas = tools.schemas_json() if tools else "[]"
+            try:
+                view = assemble(messages, schemas, config.context_policy())
+            except ContextOverflow:
+                return await finish(
+                    RunStatus.FAILED,
+                    Failure(FailureCode.CONTEXT_LIMIT, "Pinned instructions exceed context budget"),
+                )
+            await emit(
+                "context_assembled",
+                {
+                    "step": number,
+                    "unit": "utf8_bytes",
+                    "strategy": config.context_strategy,
+                    "original_bytes": view.original_bytes,
+                    "supplied_bytes": view.supplied_bytes,
+                    "omitted_messages": view.omitted_messages,
+                    "trimmed_tools": view.trimmed_tools,
+                    "history_sha256": view.history_sha256,
+                    "history_reference": {"run_id": str(run_id), "through_step": number - 1},
+                },
+            )
+            request = ModelRequest(view.messages, number, schemas)
             started = monotonic()
             failure: Failure | None = None
-            await emit("model_request", asdict(request))
+            await emit(
+                "model_request",
+                {**asdict(request), "history_messages": [asdict(m) for m in messages]},
+            )
             available = min(
                 deadline - monotonic(), config.step_timeout_seconds - (monotonic() - started)
             )

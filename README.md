@@ -116,3 +116,7 @@ and its requested commit. M4: `200ab42`; M5: `b227eec`; M6 adds validated checkp
 Stop at M6 unless another milestone is explicitly requested. There is no claim of
 exactly-once external effects, hostile-tenant security, distributed-host locking,
 complete secret detection or recovery from lost/externally changed workspace data.
+
+M7 context policies are configurable in job JSON using `context_budget_bytes`,
+`tool_output_bytes` and `context_strategy` (`recent` or `compact`). These are UTF-8
+byte limits, not token counts. Study the implementation in `docs/learning/m7-m10.md`.

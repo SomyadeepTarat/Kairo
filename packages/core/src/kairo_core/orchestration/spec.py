@@ -47,9 +47,19 @@ class JobSpec(Schema):
     run_timeout_seconds: float = Field(default=120, gt=0, le=3600, allow_inf_nan=False)
     system_prompt: str = "Complete the task within the supplied execution limits."
 
+    context_budget_bytes: int = Field(default=65536, ge=256, le=1048576)
+    tool_output_bytes: int = Field(default=8192, ge=64, le=1048576)
+    context_strategy: Literal["recent", "compact"] = "recent"
+
     def config(self) -> AgentConfig:
         return AgentConfig(
-            self.max_steps, self.step_timeout_seconds, self.run_timeout_seconds, self.system_prompt
+            self.max_steps,
+            self.step_timeout_seconds,
+            self.run_timeout_seconds,
+            self.system_prompt,
+            self.context_budget_bytes,
+            self.tool_output_bytes,
+            self.context_strategy,
         )
 
     def build_model(self) -> ScriptedModel:

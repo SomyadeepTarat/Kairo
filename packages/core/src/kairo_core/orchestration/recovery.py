@@ -47,7 +47,7 @@ def project(state: KernelSnapshot, events: list[EventRow], remaining: float) -> 
             raise RecoveryBlocked("RECORDED_MODEL_FAILURE")
     if request is None:
         return state.model_copy(update={"remaining_seconds": remaining})
-    raw_messages = request.get("messages")
+    raw_messages = request.get("history_messages", request.get("messages"))
     if not isinstance(raw_messages, list):
         raise RecoveryBlocked("INVALID_RECORDED_CONTEXT")
     messages = TypeAdapter(tuple[Message, ...]).validate_json(json.dumps(raw_messages))

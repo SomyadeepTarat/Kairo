@@ -207,6 +207,7 @@ class RunRepository:
                 tool.outcome_uncertain = bool(payload["outcome_uncertain"])
                 tool.completed_at = datetime.fromisoformat(str(payload["completed_at"]))
         elif event.kind not in {
+            "context_assembled",
             "model_request",
             "model_response",
             "model_failed",

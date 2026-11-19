@@ -120,3 +120,11 @@ explicit reconciliation. It still has no live provider, authenticated/public
 multi-user service, approval workflow, scheduler dependencies beyond PostgreSQL,
 context compaction, multi-agent orchestration or dashboard. The separate learning
 walkthrough and current limitations are in `docs/learning/m3-m6.md` and ADRs 0008–0010.
+
+## M7 context boundary
+
+`context.py` selects bounded request views without mutating checkpoint/history.
+Persisted `model_request.messages` is the supplied view, `history_messages` is the
+recovery source. `context_assembled` reports UTF-8 byte sizes and history references.
+Budget includes schemas; provider-specific token and output limits remain adapter
+responsibilities. See ADR 0011 for information-loss and scaling tradeoffs.
