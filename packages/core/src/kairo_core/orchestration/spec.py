@@ -40,6 +40,9 @@ type ScriptStep = Annotated[ContinueStep | FinalStep | ToolStep, Field(discrimin
 class JobSpec(Schema):
     task: str = Field(min_length=1, max_length=4096)
     steps: list[ScriptStep] = Field(min_length=1, max_length=1000)
+    permissions: list[Literal["workspace.read", "workspace.write", "command.execute"]] = Field(
+        default=["workspace.read", "workspace.write", "command.execute"]
+    )
     approved_commands: list[list[str]] = Field(default_factory=list, max_length=100)
     max_attempts: int = Field(default=3, ge=1, le=10)
     max_steps: int = Field(default=16, ge=1, le=1000)

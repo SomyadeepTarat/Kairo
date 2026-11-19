@@ -103,7 +103,7 @@ class Worker:
                     tools=builtin_registry(),
                     tool_context=ToolContext(
                         workspace,
-                        frozenset({"workspace.read", "workspace.write", "command.execute"}),
+                        frozenset(claim.spec.permissions),
                         executor,
                     ),
                     cancellation=cancellation,

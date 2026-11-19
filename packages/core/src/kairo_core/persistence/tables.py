@@ -155,3 +155,13 @@ class CheckpointRow(Base):
     __table_args__ = (
         UniqueConstraint("run_id", "event_sequence", name="uq_checkpoint_run_sequence"),
     )
+
+
+class WorkflowRow(Base):
+    __tablename__ = "workflows"
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    spec: Mapped[dict[str, object]] = mapped_column(JSONB)
+    state: Mapped[dict[str, object]] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(String(32))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

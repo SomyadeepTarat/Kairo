@@ -120,3 +120,9 @@ complete secret detection or recovery from lost/externally changed workspace dat
 M7 context policies are configurable in job JSON using `context_budget_bytes`,
 `tool_output_bytes` and `context_strategy` (`recent` or `compact`). These are UTF-8
 byte limits, not token counts. Study the implementation in `docs/learning/m7-m10.md`.
+
+M8: after migrating PostgreSQL, run the explicitly scripted role example with
+`uv run --locked python scripts/workflow.py run examples/scripted-workflow.json`.
+The planner validates a dependency graph; executors use real files; review/handoffs
+are durable. API: POST `/api/v1/workflows`, GET `/api/v1/workflows/{id}`, POST
+`/api/v1/workflows/{id}/advance`. See ADR 0012 for the fresh-workspace revision policy.

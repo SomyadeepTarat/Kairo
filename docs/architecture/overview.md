@@ -128,3 +128,11 @@ Persisted `model_request.messages` is the supplied view, `history_messages` is t
 recovery source. `context_assembled` reports UTF-8 byte sizes and history references.
 Budget includes schemas; provider-specific token and output limits remain adapter
 responsibilities. See ADR 0011 for information-loss and scaling tradeoffs.
+
+## M8 workflow control plane
+
+`orchestration/workflows.py` advances a durable role DAG through queued child runs.
+A locked workflow row and transactional queue insertion prevent duplicate delegation.
+Independent workspaces/context prevent silent cross-agent mutation. Handoffs carry
+bounded evidence. Planner/reviewer permissions are empty in worker execution.
+See ADR 0012 for bounded revisions, blocked children and coordinator tick behavior.

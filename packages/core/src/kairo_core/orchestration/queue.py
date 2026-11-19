@@ -46,40 +46,43 @@ class Queue:
         self.lease_seconds = lease_seconds
 
     async def enqueue(self, spec: JobSpec) -> UUID:
+        async with self.repo.sessions.begin() as session:
+            return await self.enqueue_in_transaction(session, spec)
+
+    async def enqueue_in_transaction(self, session: AsyncSession, spec: JobSpec) -> UUID:
         payload = spec.model_dump(mode="json")
         if "[REDACTED]" in json.dumps(redact_object(payload)):
             raise ValueError(
                 "Credential-bearing jobs are unsupported; do not persist secrets for replay"
             )
         run_id, attempt_id = uuid4(), uuid4()
-        async with self.repo.sessions.begin() as session:
-            now = await database_now(session)
-            await self.repo.initialize(
-                session,
-                run_id,
-                attempt_id,
-                spec.task,
-                json.dumps(asdict(spec.config())),
-                "ScriptedModel",
+        now = await database_now(session)
+        await self.repo.initialize(
+            session,
+            run_id,
+            attempt_id,
+            spec.task,
+            json.dumps(asdict(spec.config())),
+            "ScriptedModel",
+        )
+        await self.repo.record_in_transaction(
+            session,
+            event_now(
+                run_id, attempt_id, "state_transition", '{"source":"CREATED","target":"QUEUED"}'
+            ),
+        )
+        session.add(
+            JobRow(
+                run_id=run_id,
+                spec=payload,
+                state="QUEUED",
+                cancel_requested=False,
+                available_at=now,
+                created_at=now,
+                attempts=0,
+                max_attempts=spec.max_attempts,
             )
-            await self.repo.record_in_transaction(
-                session,
-                event_now(
-                    run_id, attempt_id, "state_transition", '{"source":"CREATED","target":"QUEUED"}'
-                ),
-            )
-            session.add(
-                JobRow(
-                    run_id=run_id,
-                    spec=payload,
-                    state="QUEUED",
-                    cancel_requested=False,
-                    available_at=now,
-                    created_at=now,
-                    attempts=0,
-                    max_attempts=spec.max_attempts,
-                )
-            )
+        )
         return run_id
 
     async def register(self, worker_id: UUID, capacity: int) -> None:

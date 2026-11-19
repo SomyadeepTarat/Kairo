@@ -1,0 +1,108 @@
+{
+  "planner": {
+    "task": "role task",
+    "steps": [
+      {
+        "kind": "final",
+        "text": "{\"tasks\": [{\"key\": \"write\"}, {\"key\": \"consume\", \"depends_on\": [\"write\"]}]}"
+      }
+    ],
+    "permissions": [
+      "workspace.read",
+      "workspace.write",
+      "command.execute"
+    ],
+    "approved_commands": [],
+    "max_attempts": 3,
+    "max_steps": 16,
+    "step_timeout_seconds": 30.0,
+    "run_timeout_seconds": 120.0,
+    "system_prompt": "Complete the task within the supplied execution limits.",
+    "context_budget_bytes": 65536,
+    "tool_output_bytes": 8192,
+    "context_strategy": "recent"
+  },
+  "executors": {
+    "write": {
+      "task": "write and read actual artifact",
+      "steps": [
+        {
+          "kind": "tool",
+          "name": "write_file",
+          "arguments_json": "{\"path\":\"artifact.txt\",\"content\":\"real artifact\"}"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "arguments_json": "{\"path\":\"artifact.txt\"}"
+        },
+        {
+          "kind": "final",
+          "text": "artifact produced"
+        }
+      ],
+      "permissions": [
+        "workspace.read",
+        "workspace.write",
+        "command.execute"
+      ],
+      "approved_commands": [],
+      "max_attempts": 3,
+      "max_steps": 16,
+      "step_timeout_seconds": 30.0,
+      "run_timeout_seconds": 120.0,
+      "system_prompt": "Complete the task within the supplied execution limits.",
+      "context_budget_bytes": 65536,
+      "tool_output_bytes": 8192,
+      "context_strategy": "recent"
+    },
+    "consume": {
+      "task": "role task",
+      "steps": [
+        {
+          "kind": "final",
+          "text": "dependency received"
+        }
+      ],
+      "permissions": [
+        "workspace.read",
+        "workspace.write",
+        "command.execute"
+      ],
+      "approved_commands": [],
+      "max_attempts": 3,
+      "max_steps": 16,
+      "step_timeout_seconds": 30.0,
+      "run_timeout_seconds": 120.0,
+      "system_prompt": "Complete the task within the supplied execution limits.",
+      "context_budget_bytes": 65536,
+      "tool_output_bytes": 8192,
+      "context_strategy": "recent"
+    }
+  },
+  "reviewer": {
+    "task": "role task",
+    "steps": [
+      {
+        "kind": "final",
+        "text": "{\"accepted\": true, \"feedback\": \"checked supplied evidence\"}"
+      }
+    ],
+    "permissions": [
+      "workspace.read",
+      "workspace.write",
+      "command.execute"
+    ],
+    "approved_commands": [],
+    "max_attempts": 3,
+    "max_steps": 16,
+    "step_timeout_seconds": 30.0,
+    "run_timeout_seconds": 120.0,
+    "system_prompt": "Complete the task within the supplied execution limits.",
+    "context_budget_bytes": 65536,
+    "tool_output_bytes": 8192,
+    "context_strategy": "recent"
+  },
+  "max_revisions": 1,
+  "handoff_bytes": 12000
+}

@@ -10,6 +10,7 @@ from uuid import UUID
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from kairo_core.orchestration.queue import Queue, workers
+from kairo_core.orchestration.workflows import Workflows, WorkflowSpec
 from kairo_core.persistence.repository import RecordConflict, RunRepository
 from kairo_core.persistence.tables import CheckpointRow
 from kairo_core.state import RunStatus
@@ -191,6 +192,28 @@ def create_app(repository: RunRepository | None = None) -> FastAPI:
             raise HTTPException(
                 status_code=409, detail="Invalid reconciliation for this run/invocation"
             ) from exc
+        return {"accepted": True}
+
+    @app.post("/api/v1/workflows", status_code=201)
+    async def submit_workflow(spec: WorkflowSpec) -> dict[str, UUID]:
+        try:
+            return {"id": await Workflows(Queue(repo)).submit(spec)}
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail="Invalid workflow payload") from exc
+
+    @app.get("/api/v1/workflows/{workflow_id}")
+    async def get_workflow(workflow_id: UUID) -> dict[str, object]:
+        row = await Workflows(Queue(repo)).get(workflow_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+        return row
+
+    @app.post("/api/v1/workflows/{workflow_id}/advance", status_code=202)
+    async def advance_workflow(workflow_id: UUID) -> dict[str, bool]:
+        try:
+            await Workflows(Queue(repo)).advance(workflow_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Workflow not found") from exc
         return {"accepted": True}
 
     return app
