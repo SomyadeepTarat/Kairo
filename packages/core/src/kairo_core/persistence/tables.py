@@ -165,3 +165,13 @@ class WorkflowRow(Base):
     status: Mapped[str] = mapped_column(String(32))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class EvaluationRow(Base):
+    __tablename__ = "evaluations"
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    configuration: Mapped[dict[str, object]] = mapped_column(JSONB)
+    status: Mapped[str] = mapped_column(String(32))
+    results: Mapped[list[dict[str, object]]] = mapped_column(JSONB)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

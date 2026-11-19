@@ -81,10 +81,18 @@ async def docker(*arguments: str, timeout: float = 15, limit: int = 262_144) -> 
         for task in readers:
             if not task.done():
                 task.cancel()
+        await asyncio.gather(*readers, return_exceptions=True)
         if process.returncode is None:
             process.kill()
-        await process.wait()
-        await asyncio.gather(*readers, return_exceptions=True)
+
+        async def discard(stream: asyncio.StreamReader | None) -> None:
+            assert stream is not None
+            while await stream.read(16_384):
+                pass
+
+        # A paused full pipe can prevent Process.wait() from finishing even after
+        # kill. Drain without retaining bytes, and reap concurrently.
+        await asyncio.gather(discard(process.stdout), discard(process.stderr), process.wait())
 
 
 class DockerExecutor:

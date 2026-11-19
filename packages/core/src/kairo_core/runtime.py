@@ -335,7 +335,11 @@ async def _run_agent(
                 steps.append(StepRecord(request, None, failure))
                 await emit("model_failed", asdict(failure))
                 return await finish(RunStatus.FAILED, failure)
-            await emit("model_response", {"type": type(response).__name__, **asdict(response)})
+            usage = getattr(model, "last_usage", None)
+            await emit(
+                "model_response",
+                {"type": type(response).__name__, **asdict(response), "provider_usage": usage},
+            )
             if isinstance(response, ToolRequest):
                 if tools is None or tool_context is None:
                     failure = Failure(FailureCode.UNSUPPORTED_TOOL, "No tool registry was supplied")

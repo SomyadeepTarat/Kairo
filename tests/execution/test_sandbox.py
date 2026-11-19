@@ -155,3 +155,23 @@ def test_denied_command_is_recorded_without_an_uncertain_side_effect(tmp_path: P
     )
     assert result.error_code == "APPROVAL_REQUIRED"
     assert not result.outcome_uncertain
+
+
+def test_output_limit_reaps_a_cli_with_saturated_pipes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A labelled fake control-plane CLI forces the real OS pipe/backpressure race."""
+    import sys
+
+    program = tmp_path / "docker"
+    program.write_text(
+        f"#!{sys.executable}\nimport os, time\nos.write(1, b'x' * 1048576)\ntime.sleep(30)\n"
+    )
+    program.chmod(0o700)
+    monkeypatch.setenv("PATH", str(tmp_path) + os.pathsep + os.environ["PATH"])
+
+    async def scenario() -> None:
+        with pytest.raises(ToolError, match="output exceeds"):
+            await asyncio.wait_for(docker("fixture", limit=1024), timeout=3)
+
+    asyncio.run(scenario())

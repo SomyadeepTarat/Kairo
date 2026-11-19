@@ -1,0 +1,146 @@
+{
+  "id": "90b2ffd8-a0e6-4081-b01a-10b9ec9cd15f",
+  "configuration": {
+    "mode": "single",
+    "seed": 0,
+    "cases": [
+      "file_task",
+      "coding"
+    ],
+    "model": "qwen3:4b",
+    "suite": {
+      "id": "kairo-infrastructure-v1",
+      "cases": [
+        {
+          "id": "tool_use",
+          "success": "List and search real workspace data"
+        },
+        {
+          "id": "file_task",
+          "success": "artifact.txt contains exactly benchmark artifact"
+        },
+        {
+          "id": "multistep",
+          "success": "Write, search and read the expected value"
+        },
+        {
+          "id": "command_failure",
+          "success": "Observe exit code 7 without claiming command success"
+        },
+        {
+          "id": "timeout",
+          "success": "A slow model call reaches STEP_TIMEOUT"
+        },
+        {
+          "id": "interruption",
+          "success": "Confirmed append occurs once; recovery completes only when enabled"
+        },
+        {
+          "id": "permission",
+          "success": "Forbidden write is denied and creates no file"
+        },
+        {
+          "id": "context_stress",
+          "success": "All model inputs respect the byte budget"
+        },
+        {
+          "id": "coordination",
+          "success": "Planner/executor/reviewer completes with inspectable artifact"
+        },
+        {
+          "id": "coding",
+          "success": "Generated Python implementation passes actual sandbox assertions"
+        }
+      ],
+      "version": 1
+    },
+    "backend": "ollama",
+    "budgets": {
+      "max_steps": 32,
+      "run_seconds": 120,
+      "step_seconds": 30,
+      "sandbox_image": "kairo-sandbox:local"
+    },
+    "recovery": true,
+    "strategy": "recent",
+    "environment": {
+      "python": "3.13.4",
+      "system": "Darwin",
+      "machine": "arm64",
+      "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+      "dependencies": {
+        "httpx": "0.28.1",
+        "pydantic": "2.14.2",
+        "sqlalchemy": "2.1.8",
+        "opentelemetry-sdk": "1.45.2"
+      },
+      "sandbox_image_id": "sha256:2193245e517456d6fb15a07f200bfe8556cca8a088866e01a11434b273b7664a"
+    },
+    "repetitions": 1,
+    "suite_sha256": "b00d0cdcb0826c5e468d12e7634a4e8f970c7446ae0cfdb6805a583df34f2cc3",
+    "source_sha256": "f5254270266af57e32c420498cf57ab74b4274db9cf35e4c7030bb437a02e67f",
+    "model_metadata": {
+      "name": "qwen3:4b",
+      "digest": "359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7",
+      "ollama_version": "0.40.16"
+    },
+    "context_budget_bytes": 16000
+  },
+  "status": "COMPLETED",
+  "results": [
+    {
+      "case": "file_task",
+      "passed": false,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 3,
+        "model_calls": 4,
+        "failed_tool_calls": 0,
+        "peak_context_bytes": 5624
+      },
+      "run_ids": [
+        "7e0729e6-52ec-4fb3-9af8-a795ee04e928"
+      ],
+      "model_kind": "ollama",
+      "repetition": 0,
+      "task_success": false,
+      "duration_seconds": 10.00239574999432
+    },
+    {
+      "case": "coding",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 3,
+        "model_calls": 4,
+        "failed_tool_calls": 0,
+        "peak_context_bytes": 5949
+      },
+      "run_ids": [
+        "771fe4b3-94b6-4e82-801e-b664c3650833"
+      ],
+      "model_kind": "ollama",
+      "repetition": 0,
+      "task_success": true,
+      "duration_seconds": 6.4204805420013145
+    }
+  ],
+  "started_at": "2026-11-19 18:45:42.007460+00:00",
+  "completed_at": "2026-11-19 18:45:58.449167+00:00",
+  "summary": {
+    "interrupted_task_completion_rate": null,
+    "observed_policy_bypasses": 0,
+    "scenario_count": 2,
+    "passed_scenarios": 1,
+    "task_count": 2,
+    "task_successes": 1,
+    "task_completion_rate": 0.5,
+    "outcome_groups": {
+      "ollama": {
+        "cases": 2,
+        "passed": 1
+      }
+    },
+    "total_case_seconds": 16.422876291995635
+  }
+}

@@ -4,11 +4,13 @@ import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
+from kairo_core.evaluation import EvaluationConfig, Evaluations
 from kairo_core.observability import inspect_trace
 from kairo_core.orchestration.queue import Queue, workers
 from kairo_core.orchestration.workflows import Workflows, WorkflowSpec
@@ -87,7 +89,7 @@ def create_app(repository: RunRepository | None = None) -> FastAPI:
         finally:
             await repo.close()
 
-    app = FastAPI(title="Kairo local execution control", version="0.6.0", lifespan=lifespan)
+    app = FastAPI(title="Kairo local execution control", version="0.10.0", lifespan=lifespan)
 
     @app.exception_handler(SQLAlchemyError)
     async def storage_error(request: Request, exc: SQLAlchemyError) -> JSONResponse:
@@ -223,5 +225,27 @@ def create_app(repository: RunRepository | None = None) -> FastAPI:
         except KeyError as exc:
             raise HTTPException(status_code=404, detail="Workflow not found") from exc
         return {"accepted": True}
+
+    @app.post("/api/v1/evaluations", status_code=201)
+    async def submit_evaluation(config: EvaluationConfig) -> dict[str, UUID]:
+        try:
+            return {"id": await Evaluations(repo, Path(".kairo/evaluations")).submit(config)}
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail="Invalid evaluation configuration") from exc
+
+    @app.get("/api/v1/evaluations")
+    async def list_evaluations(
+        limit: Annotated[int, Query(ge=1, le=100)] = 100,
+        offset: Annotated[int, Query(ge=0)] = 0,
+    ) -> list[dict[str, object]]:
+        return await Evaluations(repo, Path(".kairo/evaluations")).list_evaluations(limit, offset)
+
+    @app.get("/api/v1/evaluations/{evaluation_id}")
+    @app.get("/api/v1/evaluations/{evaluation_id}/results")
+    async def get_evaluation(evaluation_id: UUID) -> dict[str, object]:
+        row = await Evaluations(repo, Path(".kairo/evaluations")).get(evaluation_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail="Evaluation not found")
+        return row
 
     return app

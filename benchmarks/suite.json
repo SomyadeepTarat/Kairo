@@ -1,0 +1,16 @@
+{
+  "id": "kairo-infrastructure-v1",
+  "version": 1,
+  "cases": [
+    {"id": "tool_use", "success": "List and search real workspace data"},
+    {"id": "file_task", "success": "artifact.txt contains exactly benchmark artifact"},
+    {"id": "multistep", "success": "Write, search and read the expected value"},
+    {"id": "command_failure", "success": "Observe exit code 7 without claiming command success"},
+    {"id": "timeout", "success": "A slow model call reaches STEP_TIMEOUT"},
+    {"id": "interruption", "success": "Confirmed append occurs once; recovery completes only when enabled"},
+    {"id": "permission", "success": "Forbidden write is denied and creates no file"},
+    {"id": "context_stress", "success": "All model inputs respect the byte budget"},
+    {"id": "coordination", "success": "Planner/executor/reviewer completes with inspectable artifact"},
+    {"id": "coding", "success": "Generated Python implementation passes actual sandbox assertions"}
+  ]
+}

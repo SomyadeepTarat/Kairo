@@ -28,6 +28,7 @@ class ActiveSpan:
     started_ns: int
     clock_ns: int
     parent_id: str
+    step: int | None = None
 
     def metadata(self, *, end: bool = False, failed: bool = False) -> dict[str, object]:
         context = self.span.get_span_context()
@@ -37,6 +38,7 @@ class ActiveSpan:
             "span_id": f"{context.span_id:016x}",
             "parent_span_id": self.parent_id,
             "started_ns": self.started_ns,
+            "step": self.step,
         }
         if end:
             ended = time_ns()
@@ -59,6 +61,7 @@ class TraceRecorder:
         self.root: ActiveSpan | None = None
         self.active: dict[str, ActiveSpan] = {}
         self.first = True
+        self.step: int | None = None
 
     def begin(self, name: str, parent: Span, **attributes: str) -> ActiveSpan:
         started = time_ns()
@@ -71,7 +74,12 @@ class TraceRecorder:
             set_status_on_exception=False,
         )
         return ActiveSpan(
-            span, name, started, monotonic_ns(), f"{parent.get_span_context().span_id:016x}"
+            span,
+            name,
+            started,
+            monotonic_ns(),
+            f"{parent.get_span_context().span_id:016x}",
+            self.step,
         )
 
     async def start(
@@ -104,6 +112,8 @@ class TraceRecorder:
             correlation["attempt_started"] = self.root.metadata()
             self.first = False
         key: str | None = None
+        if event.kind == "model_request":
+            self.step = int(payload["step"])
         opening = event.kind in {"model_request", "tool_started"}
         if event.kind in {"model_request", "model_response", "model_failed"}:
             key = "model"
@@ -169,6 +179,8 @@ async def inspect_trace(repository: "RunRepository", run_id: UUID) -> dict[str, 
     spans: dict[str, dict[str, object]] = {}
     model_calls = tool_calls = failed_tools = retries = 0
     context_peak = 0
+    denied_requests = 0
+    token_usage: dict[str, int] = {}
     failures: list[dict[str, object]] = []
     after = 0
     while True:
@@ -191,11 +203,21 @@ async def inspect_trace(repository: "RunRepository", run_id: UUID) -> dict[str, 
                         if isinstance(span, dict):
                             spans[str(span["span_id"])] = span
             kind = event["event_type"]
+            usage = payload.get("provider_usage")
+            if kind == "model_response" and isinstance(usage, dict):
+                for key in ("prompt_eval_count", "eval_count"):
+                    value = usage.get(key)
+                    if type(value) is int and value >= 0:
+                        token_usage[key] = token_usage.get(key, 0) + value
             model_calls += kind == "model_request"
             tool_calls += kind == "tool_requested"
             retries += kind == "attempt_recovered"
             if kind == "tool_finished" and payload.get("status") != "COMPLETED":
                 failed_tools += 1
+                denied_requests += payload.get("error_code") in {
+                    "PERMISSION_DENIED",
+                    "COMMAND_DENIED",
+                }
                 failures.append(
                     {
                         "sequence": after,
@@ -216,6 +238,11 @@ async def inspect_trace(repository: "RunRepository", run_id: UUID) -> dict[str, 
                 context_peak = max(context_peak, int(str(payload["supplied_bytes"])))
         if len(events) < 1000:
             break
+    step_seconds: dict[str, float] = {}
+    for observed in spans.values():
+        if observed.get("step") is not None and "duration_seconds" in observed:
+            key = str(observed["parent_span_id"]) + ":" + str(observed["step"])
+            step_seconds[key] = step_seconds.get(key, 0) + float(str(observed["duration_seconds"]))
     incomplete = [s for s in spans.values() if "ended_ns" not in s]
     # Incomplete spans are historical observations, never synthetic successful endings.
     metrics: dict[str, object] = {
@@ -224,7 +251,8 @@ async def inspect_trace(repository: "RunRepository", run_id: UUID) -> dict[str, 
         "failed_tool_calls": failed_tools,
         "retries": retries,
         "peak_context_bytes": context_peak,
-        "token_usage": None,
+        "token_usage": token_usage or None,
+        "denied_policy_requests": denied_requests,
     }
     from datetime import datetime
 
@@ -244,4 +272,5 @@ async def inspect_trace(repository: "RunRepository", run_id: UUID) -> dict[str, 
         "incomplete_span_count": len(incomplete),
         "failures": failures,
         "virtual_run_parent": True,
+        "step_operation_seconds": step_seconds,
     }

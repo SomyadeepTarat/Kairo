@@ -3,16 +3,18 @@
 A local-first agent execution harness for learning reliable, inspectable execution.
 Product specification: [prd.md](prd.md). No paid API or cloud service is required.
 
-Implemented through **M6**: custom async kernel, typed workspace tools, PostgreSQL
-history, restricted Docker commands, durable queue/local workers, checkpoints,
-bounded recovery and explicit uncertain-effect reconciliation. Demos use prescribed
-model responses with real file/container/database operations. Live Ollama inference,
-context compaction, multi-agent coordination and the dashboard remain future work.
+Implemented through **M10**: custom async execution, typed tools, restricted Docker
+commands, PostgreSQL history, durable workers/recovery, bounded context views,
+planner/executor/reviewer coordination, OpenTelemetry traces, and reproducible local
+evaluations. Infrastructure demos/tests use labelled scripted models with real
+operations. Optional behavioral evaluations use local Ollama; no model is downloaded
+automatically. Dashboard and final demonstration/release work remain later milestones.
 
 Study at your own pace:
 
 - [M0–M3 guide](docs/learning/guide.md)
 - [Separate M3–M6 guide](docs/learning/m3-m6.md)
+- [Separate M7–M10 guide](docs/learning/m7-m10.md)
 - [Architecture](docs/architecture/overview.md), [decisions](docs/decisions/0010-safe-recovery.md),
   and [milestone validation records](docs/milestones/M6.md)
 
@@ -113,7 +115,7 @@ Kernel-only and file-only demos remain `scripts/demo_kernel.py` and
 One developer owns the project with Codex as mentor/implementation assistant.
 [AGENTS.md](AGENTS.md) records scope. Each new milestone gets relevant tests, notes
 and its requested commit. M4: `200ab42`; M5: `b227eec`; M6 adds validated checkpointed recovery and reconciliation.
-Stop at M6 unless another milestone is explicitly requested. There is no claim of
+Stop at M10 unless another milestone is explicitly requested. There is no claim of
 exactly-once external effects, hostile-tenant security, distributed-host locking,
 complete secret detection or recovery from lost/externally changed workspace data.
 
@@ -131,3 +133,26 @@ M9: GET `/api/v1/runs/{id}/trace` or run
 `uv run --locked python scripts/trace.py RUN_UUID` for measured span timing,
 failure codes, retries and unfinished operations. OpenTelemetry SDK instrumentation
 runs locally without a collector. Unknown provider token usage remains null.
+
+
+## Evaluate reproducibly
+
+```sh
+uv run --locked python scripts/evaluate.py run --repetitions 2
+uv run --locked python scripts/evaluate.py run --strategy compact --repetitions 2
+uv run --locked python scripts/evaluate.py compare LEFT_UUID RIGHT_UUID
+uv run --locked python scripts/evaluate.py run --ollama qwen3:4b --cases file_task coding
+```
+
+The last command requires Ollama running and that model already installed. Other
+models can be selected explicitly. Deterministic infrastructure cases and live
+behavioral outcomes are labelled separately; assertions inspect real files/tests.
+No claim of general model quality follows from this small suite. Use `--mode multi`
+or `--no-recovery` for the other comparisons. Changed source/environment/budgets are
+rejected as incomparable. Baselines are in `benchmarks/results/` with limitations.
+
+POST `/api/v1/evaluations` queues a configuration; GET collection/detail/`results`
+inspects persisted outcomes. Execute an API submission using
+`uv run --locked python scripts/evaluate.py execute EVALUATION_UUID`.
+A completed evaluation can contain failed cases. Partial results survive interruption;
+evaluations are never automatically replayed after an unknown process outcome.

@@ -1,0 +1,14 @@
+{
+  "kind": "diagnostic_replay_without_tool_execution",
+  "model_metadata": {
+    "name": "vabwee-llm:latest",
+    "digest": "abe814d3a12529d04313128026390daa281e02ed5bf8bacb3bf14f49e3b7d041",
+    "ollama_version": "0.40.16"
+  },
+  "original_run_id": "3da6b8f6-b401-49d2-8073-2d3559268adc",
+  "request": "last recorded model_request, unchanged messages/schema/options",
+  "http_status": 400,
+  "response_error": "Failed to initialize samplers: std::exception",
+  "separate_simple_json_request_http_status": 200,
+  "interpretation": "Provider rejects this continuation; do not interpret as measured general model quality."
+}

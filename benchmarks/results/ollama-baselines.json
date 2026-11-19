@@ -1,0 +1,834 @@
+{
+  "evaluations": {
+    "qwen_single": {
+      "id": "cf592cbe-f37b-4299-8e73-9bae1f7841ac",
+      "configuration": {
+        "mode": "single",
+        "seed": 0,
+        "cases": [
+          "file_task",
+          "coding"
+        ],
+        "model": "qwen3:4b",
+        "suite": {
+          "id": "kairo-infrastructure-v1",
+          "cases": [
+            {
+              "id": "tool_use",
+              "success": "List and search real workspace data"
+            },
+            {
+              "id": "file_task",
+              "success": "artifact.txt contains exactly benchmark artifact"
+            },
+            {
+              "id": "multistep",
+              "success": "Write, search and read the expected value"
+            },
+            {
+              "id": "command_failure",
+              "success": "Observe exit code 7 without claiming command success"
+            },
+            {
+              "id": "timeout",
+              "success": "A slow model call reaches STEP_TIMEOUT"
+            },
+            {
+              "id": "interruption",
+              "success": "Confirmed append occurs once; recovery completes only when enabled"
+            },
+            {
+              "id": "permission",
+              "success": "Forbidden write is denied and creates no file"
+            },
+            {
+              "id": "context_stress",
+              "success": "All model inputs respect the byte budget"
+            },
+            {
+              "id": "coordination",
+              "success": "Planner/executor/reviewer completes with inspectable artifact"
+            },
+            {
+              "id": "coding",
+              "success": "Generated Python implementation passes actual sandbox assertions"
+            }
+          ],
+          "version": 1
+        },
+        "backend": "ollama",
+        "budgets": {
+          "max_steps": 32,
+          "run_seconds": 120,
+          "step_seconds": 30,
+          "sandbox_image": "kairo-sandbox:local"
+        },
+        "recovery": true,
+        "strategy": "recent",
+        "environment": {
+          "python": "3.13.4",
+          "system": "Darwin",
+          "machine": "arm64",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "dependencies": {
+            "httpx": "0.28.1",
+            "pydantic": "2.14.2",
+            "sqlalchemy": "2.1.8",
+            "opentelemetry-sdk": "1.45.2"
+          },
+          "sandbox_image_id": "sha256:2193245e517456d6fb15a07f200bfe8556cca8a088866e01a11434b273b7664a"
+        },
+        "repetitions": 2,
+        "suite_sha256": "b00d0cdcb0826c5e468d12e7634a4e8f970c7446ae0cfdb6805a583df34f2cc3",
+        "source_sha256": "a004d7be41b4e31f998d1c7862d662747e3b55377a1c1529d8074d58cbf4ae3f",
+        "model_metadata": {
+          "name": "qwen3:4b",
+          "digest": "359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7",
+          "ollama_version": "0.40.16"
+        },
+        "context_budget_bytes": 16000
+      },
+      "status": "COMPLETED",
+      "results": [
+        {
+          "case": "file_task",
+          "passed": false,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 3,
+            "model_calls": 4,
+            "token_usage": {
+              "eval_count": 131,
+              "prompt_eval_count": 5963
+            },
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5624,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "81d1ead5-2df6-4e17-8c22-a5a169404e52"
+          ],
+          "model_kind": "ollama",
+          "repetition": 0,
+          "validation": null,
+          "task_success": false,
+          "duration_seconds": 8.687071749998722,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "coding",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 3,
+            "model_calls": 4,
+            "token_usage": {
+              "eval_count": 186,
+              "prompt_eval_count": 6241
+            },
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5949,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "3136b4c8-57e3-4123-8c69-a6be71cf5a58"
+          ],
+          "model_kind": "ollama",
+          "repetition": 0,
+          "validation": {
+            "argv": [
+              "python",
+              "-c",
+              "from solution import add; assert add(2,3)==5; assert add(-1,1)==0"
+            ],
+            "kind": "independent_sandbox_oracle",
+            "stderr": "",
+            "stdout": "",
+            "returncode": 0
+          },
+          "task_success": true,
+          "duration_seconds": 6.314546874986263,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "file_task",
+          "passed": false,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 3,
+            "model_calls": 4,
+            "token_usage": {
+              "eval_count": 131,
+              "prompt_eval_count": 5963
+            },
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5624,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "9dcde24d-b2ba-4667-a7b5-6074ee91145b"
+          ],
+          "model_kind": "ollama",
+          "repetition": 1,
+          "validation": null,
+          "task_success": false,
+          "duration_seconds": 4.266727166977944,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "coding",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 3,
+            "model_calls": 4,
+            "token_usage": {
+              "eval_count": 186,
+              "prompt_eval_count": 6241
+            },
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5949,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "1f8b3ed3-f120-43d2-b547-42d4be4eb600"
+          ],
+          "model_kind": "ollama",
+          "repetition": 1,
+          "validation": {
+            "argv": [
+              "python",
+              "-c",
+              "from solution import add; assert add(2,3)==5; assert add(-1,1)==0"
+            ],
+            "kind": "independent_sandbox_oracle",
+            "stderr": "",
+            "stdout": "",
+            "returncode": 0
+          },
+          "task_success": true,
+          "duration_seconds": 6.308780499995919,
+          "observed_policy_bypasses": null
+        }
+      ],
+      "started_at": "2026-11-19 19:06:28.006355+00:00",
+      "completed_at": "2026-11-19 19:06:53.614775+00:00",
+      "summary": {
+        "interrupted_task_completion_rate": null,
+        "observed_policy_bypasses": 0,
+        "scenario_count": 4,
+        "passed_scenarios": 2,
+        "task_count": 4,
+        "task_successes": 2,
+        "task_completion_rate": 0.5,
+        "outcome_groups": {
+          "ollama": {
+            "cases": 4,
+            "passed": 2
+          }
+        },
+        "total_case_seconds": 25.577126291958848
+      }
+    },
+    "qwen_multi": {
+      "id": "99467954-adaa-4940-93a5-691495ea22fb",
+      "configuration": {
+        "mode": "multi",
+        "seed": 0,
+        "cases": [
+          "file_task",
+          "coding"
+        ],
+        "model": "qwen3:4b",
+        "suite": {
+          "id": "kairo-infrastructure-v1",
+          "cases": [
+            {
+              "id": "tool_use",
+              "success": "List and search real workspace data"
+            },
+            {
+              "id": "file_task",
+              "success": "artifact.txt contains exactly benchmark artifact"
+            },
+            {
+              "id": "multistep",
+              "success": "Write, search and read the expected value"
+            },
+            {
+              "id": "command_failure",
+              "success": "Observe exit code 7 without claiming command success"
+            },
+            {
+              "id": "timeout",
+              "success": "A slow model call reaches STEP_TIMEOUT"
+            },
+            {
+              "id": "interruption",
+              "success": "Confirmed append occurs once; recovery completes only when enabled"
+            },
+            {
+              "id": "permission",
+              "success": "Forbidden write is denied and creates no file"
+            },
+            {
+              "id": "context_stress",
+              "success": "All model inputs respect the byte budget"
+            },
+            {
+              "id": "coordination",
+              "success": "Planner/executor/reviewer completes with inspectable artifact"
+            },
+            {
+              "id": "coding",
+              "success": "Generated Python implementation passes actual sandbox assertions"
+            }
+          ],
+          "version": 1
+        },
+        "backend": "ollama",
+        "budgets": {
+          "max_steps": 32,
+          "run_seconds": 120,
+          "step_seconds": 30,
+          "sandbox_image": "kairo-sandbox:local"
+        },
+        "recovery": true,
+        "strategy": "recent",
+        "environment": {
+          "python": "3.13.4",
+          "system": "Darwin",
+          "machine": "arm64",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "dependencies": {
+            "httpx": "0.28.1",
+            "pydantic": "2.14.2",
+            "sqlalchemy": "2.1.8",
+            "opentelemetry-sdk": "1.45.2"
+          },
+          "sandbox_image_id": "sha256:2193245e517456d6fb15a07f200bfe8556cca8a088866e01a11434b273b7664a"
+        },
+        "repetitions": 2,
+        "suite_sha256": "b00d0cdcb0826c5e468d12e7634a4e8f970c7446ae0cfdb6805a583df34f2cc3",
+        "source_sha256": "a004d7be41b4e31f998d1c7862d662747e3b55377a1c1529d8074d58cbf4ae3f",
+        "model_metadata": {
+          "name": "qwen3:4b",
+          "digest": "359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7",
+          "ollama_version": "0.40.16"
+        },
+        "context_budget_bytes": 16000
+      },
+      "status": "COMPLETED",
+      "results": [
+        {
+          "case": "file_task",
+          "passed": false,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 4,
+            "model_calls": 4,
+            "token_usage": {
+              "eval_count": 132,
+              "prompt_eval_count": 5924
+            },
+            "failed_tool_calls": 4,
+            "peak_context_bytes": 5525,
+            "denied_policy_requests": 4,
+            "tool_call_success_rate": 0.0
+          },
+          "run_ids": [
+            "03549c69-132d-4078-9070-8a94540a1289"
+          ],
+          "model_kind": "ollama",
+          "repetition": 0,
+          "validation": null,
+          "task_success": false,
+          "duration_seconds": 4.448806250002235,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "coding",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 3,
+            "model_calls": 4,
+            "token_usage": {
+              "eval_count": 186,
+              "prompt_eval_count": 6241
+            },
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5949,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "15a1e3ee-d48d-4800-a67c-34ef808a8f0f"
+          ],
+          "model_kind": "ollama",
+          "repetition": 0,
+          "validation": {
+            "argv": [
+              "python",
+              "-c",
+              "from solution import add; assert add(2,3)==5; assert add(-1,1)==0"
+            ],
+            "kind": "independent_sandbox_oracle",
+            "stderr": "",
+            "stdout": "",
+            "returncode": 0
+          },
+          "task_success": true,
+          "duration_seconds": 6.138351708999835,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "file_task",
+          "passed": false,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 4,
+            "model_calls": 4,
+            "token_usage": {
+              "eval_count": 132,
+              "prompt_eval_count": 5924
+            },
+            "failed_tool_calls": 4,
+            "peak_context_bytes": 5525,
+            "denied_policy_requests": 4,
+            "tool_call_success_rate": 0.0
+          },
+          "run_ids": [
+            "fa479af6-5d82-420f-86df-e5624ce66a9f"
+          ],
+          "model_kind": "ollama",
+          "repetition": 1,
+          "validation": null,
+          "task_success": false,
+          "duration_seconds": 4.260619332984788,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "coding",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 3,
+            "model_calls": 4,
+            "token_usage": {
+              "eval_count": 186,
+              "prompt_eval_count": 6241
+            },
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5949,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "7a952b39-f80c-4ce5-9d58-4cf59e21df6a"
+          ],
+          "model_kind": "ollama",
+          "repetition": 1,
+          "validation": {
+            "argv": [
+              "python",
+              "-c",
+              "from solution import add; assert add(2,3)==5; assert add(-1,1)==0"
+            ],
+            "kind": "independent_sandbox_oracle",
+            "stderr": "",
+            "stdout": "",
+            "returncode": 0
+          },
+          "task_success": true,
+          "duration_seconds": 6.260176790994592,
+          "observed_policy_bypasses": null
+        }
+      ],
+      "started_at": "2026-11-19 19:06:53.667605+00:00",
+      "completed_at": "2026-11-19 19:07:14.795643+00:00",
+      "summary": {
+        "interrupted_task_completion_rate": null,
+        "observed_policy_bypasses": 0,
+        "scenario_count": 4,
+        "passed_scenarios": 2,
+        "task_count": 4,
+        "task_successes": 2,
+        "task_completion_rate": 0.5,
+        "outcome_groups": {
+          "ollama": {
+            "cases": 4,
+            "passed": 2
+          }
+        },
+        "total_case_seconds": 21.10795408298145
+      }
+    },
+    "vabwee_single": {
+      "id": "915c8756-1688-4533-88da-4a29b2033a8c",
+      "configuration": {
+        "mode": "single",
+        "seed": 0,
+        "cases": [
+          "file_task",
+          "coding"
+        ],
+        "model": "vabwee-llm:latest",
+        "suite": {
+          "id": "kairo-infrastructure-v1",
+          "cases": [
+            {
+              "id": "tool_use",
+              "success": "List and search real workspace data"
+            },
+            {
+              "id": "file_task",
+              "success": "artifact.txt contains exactly benchmark artifact"
+            },
+            {
+              "id": "multistep",
+              "success": "Write, search and read the expected value"
+            },
+            {
+              "id": "command_failure",
+              "success": "Observe exit code 7 without claiming command success"
+            },
+            {
+              "id": "timeout",
+              "success": "A slow model call reaches STEP_TIMEOUT"
+            },
+            {
+              "id": "interruption",
+              "success": "Confirmed append occurs once; recovery completes only when enabled"
+            },
+            {
+              "id": "permission",
+              "success": "Forbidden write is denied and creates no file"
+            },
+            {
+              "id": "context_stress",
+              "success": "All model inputs respect the byte budget"
+            },
+            {
+              "id": "coordination",
+              "success": "Planner/executor/reviewer completes with inspectable artifact"
+            },
+            {
+              "id": "coding",
+              "success": "Generated Python implementation passes actual sandbox assertions"
+            }
+          ],
+          "version": 1
+        },
+        "backend": "ollama",
+        "budgets": {
+          "max_steps": 32,
+          "run_seconds": 120,
+          "step_seconds": 30,
+          "sandbox_image": "kairo-sandbox:local"
+        },
+        "recovery": true,
+        "strategy": "recent",
+        "environment": {
+          "python": "3.13.4",
+          "system": "Darwin",
+          "machine": "arm64",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "dependencies": {
+            "httpx": "0.28.1",
+            "pydantic": "2.14.2",
+            "sqlalchemy": "2.1.8",
+            "opentelemetry-sdk": "1.45.2"
+          },
+          "sandbox_image_id": "sha256:2193245e517456d6fb15a07f200bfe8556cca8a088866e01a11434b273b7664a"
+        },
+        "repetitions": 2,
+        "suite_sha256": "b00d0cdcb0826c5e468d12e7634a4e8f970c7446ae0cfdb6805a583df34f2cc3",
+        "source_sha256": "a004d7be41b4e31f998d1c7862d662747e3b55377a1c1529d8074d58cbf4ae3f",
+        "model_metadata": {
+          "name": "vabwee-llm:latest",
+          "digest": "abe814d3a12529d04313128026390daa281e02ed5bf8bacb3bf14f49e3b7d041",
+          "ollama_version": "0.40.16"
+        },
+        "context_budget_bytes": 16000
+      },
+      "status": "COMPLETED",
+      "results": [
+        {
+          "case": "file_task",
+          "passed": false,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 0,
+            "model_calls": 2,
+            "token_usage": {
+              "eval_count": 14,
+              "prompt_eval_count": 1386
+            },
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 4809,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": null
+          },
+          "run_ids": [
+            "3da6b8f6-b401-49d2-8073-2d3559268adc"
+          ],
+          "model_kind": "ollama",
+          "repetition": 0,
+          "validation": null,
+          "task_success": false,
+          "duration_seconds": 4.301952959009213,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "coding",
+          "passed": false,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 0,
+            "model_calls": 2,
+            "token_usage": {
+              "eval_count": 31,
+              "prompt_eval_count": 1430
+            },
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5033,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": null
+          },
+          "run_ids": [
+            "c54d4e15-624e-4c6f-b87e-116bad399273"
+          ],
+          "model_kind": "ollama",
+          "repetition": 0,
+          "validation": null,
+          "task_success": false,
+          "duration_seconds": 0.9717682079935912,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "file_task",
+          "passed": false,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 0,
+            "model_calls": 2,
+            "token_usage": {
+              "eval_count": 14,
+              "prompt_eval_count": 1386
+            },
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 4809,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": null
+          },
+          "run_ids": [
+            "596580a1-6807-442f-bda8-caa8267453d6"
+          ],
+          "model_kind": "ollama",
+          "repetition": 1,
+          "validation": null,
+          "task_success": false,
+          "duration_seconds": 0.5584721670020372,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "coding",
+          "passed": false,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 0,
+            "model_calls": 2,
+            "token_usage": {
+              "eval_count": 31,
+              "prompt_eval_count": 1430
+            },
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5033,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": null
+          },
+          "run_ids": [
+            "f6d9f63f-88b8-46ff-8230-b45389d2f51d"
+          ],
+          "model_kind": "ollama",
+          "repetition": 1,
+          "validation": null,
+          "task_success": false,
+          "duration_seconds": 0.9326880000007804,
+          "observed_policy_bypasses": null
+        }
+      ],
+      "started_at": "2026-11-19 19:07:14.845223+00:00",
+      "completed_at": "2026-11-19 19:07:21.630969+00:00",
+      "summary": {
+        "interrupted_task_completion_rate": null,
+        "observed_policy_bypasses": 0,
+        "scenario_count": 4,
+        "passed_scenarios": 0,
+        "task_count": 4,
+        "task_successes": 0,
+        "task_completion_rate": 0.0,
+        "outcome_groups": {
+          "ollama": {
+            "cases": 4,
+            "passed": 0
+          }
+        },
+        "total_case_seconds": 6.764881334005622
+      }
+    }
+  },
+  "comparisons": {
+    "single_multi": {
+      "paired_case_timings": [
+        {
+          "case": "file_task",
+          "n": 2,
+          "left_mean_seconds": 6.476899458488333,
+          "right_mean_seconds": 4.354712791493512,
+          "mean_delta_seconds": -2.1221866669948213,
+          "left_sample_sd": 3.1256556298352143,
+          "right_sample_sd": 0.13306824515362675
+        },
+        {
+          "case": "coding",
+          "n": 2,
+          "left_mean_seconds": 6.311663687491091,
+          "right_mean_seconds": 6.1992642499972135,
+          "mean_delta_seconds": -0.11239943749387749,
+          "left_sample_sd": 0.004077442858536788,
+          "right_sample_sd": 0.08614334159709988
+        }
+      ],
+      "left_model_metadata": {
+        "name": "qwen3:4b",
+        "digest": "359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7",
+        "ollama_version": "0.40.16"
+      },
+      "right_model_metadata": {
+        "name": "qwen3:4b",
+        "digest": "359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7",
+        "ollama_version": "0.40.16"
+      },
+      "left": "cf592cbe-f37b-4299-8e73-9bae1f7841ac",
+      "right": "99467954-adaa-4940-93a5-691495ea22fb",
+      "changed_strategies": {
+        "mode": [
+          "single",
+          "multi"
+        ]
+      },
+      "left_summary": {
+        "interrupted_task_completion_rate": null,
+        "observed_policy_bypasses": 0,
+        "scenario_count": 4,
+        "passed_scenarios": 2,
+        "task_count": 4,
+        "task_successes": 2,
+        "task_completion_rate": 0.5,
+        "outcome_groups": {
+          "ollama": {
+            "cases": 4,
+            "passed": 2
+          }
+        },
+        "total_case_seconds": 25.577126291958848
+      },
+      "right_summary": {
+        "interrupted_task_completion_rate": null,
+        "observed_policy_bypasses": 0,
+        "scenario_count": 4,
+        "passed_scenarios": 2,
+        "task_count": 4,
+        "task_successes": 2,
+        "task_completion_rate": 0.5,
+        "outcome_groups": {
+          "ollama": {
+            "cases": 4,
+            "passed": 2
+          }
+        },
+        "total_case_seconds": 21.10795408298145
+      },
+      "caution": "Small local samples; deterministic infrastructure outcomes are not model quality evidence."
+    },
+    "models": {
+      "paired_case_timings": [
+        {
+          "case": "file_task",
+          "n": 2,
+          "left_mean_seconds": 6.476899458488333,
+          "right_mean_seconds": 2.4302125630056253,
+          "mean_delta_seconds": -4.046686895482708,
+          "left_sample_sd": 3.1256556298352143,
+          "right_sample_sd": 2.647040653269862
+        },
+        {
+          "case": "coding",
+          "n": 2,
+          "left_mean_seconds": 6.311663687491091,
+          "right_mean_seconds": 0.9522281039971858,
+          "mean_delta_seconds": -5.359435583493905,
+          "left_sample_sd": 0.004077442858536788,
+          "right_sample_sd": 0.0276338800818972
+        }
+      ],
+      "left_model_metadata": {
+        "name": "qwen3:4b",
+        "digest": "359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7",
+        "ollama_version": "0.40.16"
+      },
+      "right_model_metadata": {
+        "name": "vabwee-llm:latest",
+        "digest": "abe814d3a12529d04313128026390daa281e02ed5bf8bacb3bf14f49e3b7d041",
+        "ollama_version": "0.40.16"
+      },
+      "left": "cf592cbe-f37b-4299-8e73-9bae1f7841ac",
+      "right": "915c8756-1688-4533-88da-4a29b2033a8c",
+      "changed_strategies": {
+        "model": [
+          "qwen3:4b",
+          "vabwee-llm:latest"
+        ]
+      },
+      "left_summary": {
+        "interrupted_task_completion_rate": null,
+        "observed_policy_bypasses": 0,
+        "scenario_count": 4,
+        "passed_scenarios": 2,
+        "task_count": 4,
+        "task_successes": 2,
+        "task_completion_rate": 0.5,
+        "outcome_groups": {
+          "ollama": {
+            "cases": 4,
+            "passed": 2
+          }
+        },
+        "total_case_seconds": 25.577126291958848
+      },
+      "right_summary": {
+        "interrupted_task_completion_rate": null,
+        "observed_policy_bypasses": 0,
+        "scenario_count": 4,
+        "passed_scenarios": 0,
+        "task_count": 4,
+        "task_successes": 0,
+        "task_completion_rate": 0.0,
+        "outcome_groups": {
+          "ollama": {
+            "cases": 4,
+            "passed": 0
+          }
+        },
+        "total_case_seconds": 6.764881334005622
+      },
+      "caution": "Small local samples; deterministic infrastructure outcomes are not model quality evidence."
+    }
+  }
+}

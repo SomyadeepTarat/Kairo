@@ -49,6 +49,10 @@ def test_failed_run_correlated_spans_logs_and_api(
         assert metrics["model_calls"] == 2 and metrics["failed_tool_calls"] == 1
         assert metrics["token_usage"] is None and metrics["duration_seconds"] > 0
         assert view["failures"] and view["incomplete_span_count"] == 0
+        observed_spans = view["spans"]
+        assert isinstance(observed_spans, list)
+        assert {s["step"] for s in observed_spans if s["name"] == "model"} == {1, 2}
+        assert view["step_operation_seconds"]
         spans = exporter.get_finished_spans()
         assert {s.name for s in spans} == {"attempt", "model", "tool"}
         assert all(s.context and s.context.trace_id == result.run_id.int for s in spans)

@@ -338,3 +338,26 @@ def test_killed_worker_is_fenced_and_its_container_is_removed(
         await repo.close()
 
     asyncio.run(scenario())
+
+
+def test_worker_records_actual_injected_adapter(database_url: str, tmp_path: Path) -> None:
+    """A labelled deterministic adapter tests metadata, not model quality."""
+
+    class ActualAdapter:
+        async def generate(self, request: ModelRequest) -> Final:
+            return Final("actual adapter output")
+
+    async def scenario() -> None:
+        repo = storage(database_url)
+        queue = Queue(repo)
+        identity = await queue.enqueue(
+            JobSpec(task="adapter metadata", steps=[FinalStep(kind="final", text="unused script")])
+        )
+        worker = Worker(queue, tmp_path, model_factory=lambda _: ActualAdapter())
+        result = await worker.work_once(identity)
+        assert result and result.output == "actual adapter output"
+        row = await repo.get_run(identity)
+        assert row and row["model_configuration"] == {"adapter": "ActualAdapter"}
+        await repo.close()
+
+    asyncio.run(scenario())

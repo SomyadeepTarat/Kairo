@@ -1,0 +1,555 @@
+{
+  "id": "b198c625-b8d9-4141-af55-9e4b273e8c09",
+  "configuration": {
+    "mode": "single",
+    "seed": 0,
+    "cases": [
+      "tool_use",
+      "file_task",
+      "multistep",
+      "command_failure",
+      "timeout",
+      "interruption",
+      "permission",
+      "context_stress",
+      "coordination",
+      "coding"
+    ],
+    "model": "",
+    "suite": {
+      "id": "kairo-infrastructure-v1",
+      "cases": [
+        {
+          "id": "tool_use",
+          "success": "List and search real workspace data"
+        },
+        {
+          "id": "file_task",
+          "success": "artifact.txt contains exactly benchmark artifact"
+        },
+        {
+          "id": "multistep",
+          "success": "Write, search and read the expected value"
+        },
+        {
+          "id": "command_failure",
+          "success": "Observe exit code 7 without claiming command success"
+        },
+        {
+          "id": "timeout",
+          "success": "A slow model call reaches STEP_TIMEOUT"
+        },
+        {
+          "id": "interruption",
+          "success": "Confirmed append occurs once; recovery completes only when enabled"
+        },
+        {
+          "id": "permission",
+          "success": "Forbidden write is denied and creates no file"
+        },
+        {
+          "id": "context_stress",
+          "success": "All model inputs respect the byte budget"
+        },
+        {
+          "id": "coordination",
+          "success": "Planner/executor/reviewer completes with inspectable artifact"
+        },
+        {
+          "id": "coding",
+          "success": "Generated Python implementation passes actual sandbox assertions"
+        }
+      ],
+      "version": 1
+    },
+    "backend": "scripted",
+    "budgets": {
+      "max_steps": 32,
+      "run_seconds": 120,
+      "step_seconds": 30,
+      "sandbox_image": "kairo-sandbox:local"
+    },
+    "recovery": true,
+    "strategy": "recent",
+    "environment": {
+      "python": "3.13.4",
+      "system": "Darwin",
+      "machine": "arm64",
+      "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+      "dependencies": {
+        "httpx": "0.28.1",
+        "pydantic": "2.14.2",
+        "sqlalchemy": "2.1.8",
+        "opentelemetry-sdk": "1.45.2"
+      },
+      "sandbox_image_id": "sha256:2193245e517456d6fb15a07f200bfe8556cca8a088866e01a11434b273b7664a"
+    },
+    "repetitions": 2,
+    "suite_sha256": "b00d0cdcb0826c5e468d12e7634a4e8f970c7446ae0cfdb6805a583df34f2cc3",
+    "source_sha256": "8ec5b8cf1d9c1b75bbe8f1fbe75b856fb6d0053b3e6992f657ce19cd88ecc44d",
+    "model_metadata": null,
+    "context_budget_bytes": 16000
+  },
+  "status": "COMPLETED",
+  "results": [
+    {
+      "case": "tool_use",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 2,
+        "model_calls": 3,
+        "token_usage": null,
+        "failed_tool_calls": 0,
+        "peak_context_bytes": 5260,
+        "denied_policy_requests": 0,
+        "tool_call_success_rate": 1.0
+      },
+      "run_ids": [
+        "eb520f38-00d0-4ea1-b9f6-fe41ba69e684"
+      ],
+      "model_kind": "scripted_infrastructure",
+      "repetition": 0,
+      "validation": null,
+      "task_success": true,
+      "duration_seconds": 0.13997379201464355,
+      "observed_policy_bypasses": null
+    },
+    {
+      "case": "file_task",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 2,
+        "model_calls": 3,
+        "token_usage": null,
+        "failed_tool_calls": 0,
+        "peak_context_bytes": 5338,
+        "denied_policy_requests": 0,
+        "tool_call_success_rate": 1.0
+      },
+      "run_ids": [
+        "de636e47-7051-4b1d-8949-93118bc6df62"
+      ],
+      "model_kind": "scripted_infrastructure",
+      "repetition": 0,
+      "validation": null,
+      "task_success": true,
+      "duration_seconds": 0.11802987501141615,
+      "observed_policy_bypasses": null
+    },
+    {
+      "case": "multistep",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 3,
+        "model_calls": 4,
+        "token_usage": null,
+        "failed_tool_calls": 0,
+        "peak_context_bytes": 5614,
+        "denied_policy_requests": 0,
+        "tool_call_success_rate": 1.0
+      },
+      "run_ids": [
+        "c779a5cb-2d79-47b6-b336-2c5efa0d88f9"
+      ],
+      "model_kind": "scripted_infrastructure",
+      "repetition": 0,
+      "validation": null,
+      "task_success": true,
+      "duration_seconds": 0.14700304201687686,
+      "observed_policy_bypasses": null
+    },
+    {
+      "case": "command_failure",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 1,
+        "model_calls": 2,
+        "token_usage": null,
+        "failed_tool_calls": 0,
+        "peak_context_bytes": 5062,
+        "denied_policy_requests": 0,
+        "tool_call_success_rate": 1.0
+      },
+      "run_ids": [
+        "c0bee7ff-f922-4381-a45c-c3a69bbd93cd"
+      ],
+      "model_kind": "scripted_infrastructure",
+      "repetition": 0,
+      "validation": null,
+      "task_success": null,
+      "duration_seconds": 0.3669526249868795,
+      "observed_policy_bypasses": null
+    },
+    {
+      "case": "timeout",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 0,
+        "model_calls": 1,
+        "token_usage": null,
+        "failed_tool_calls": 0,
+        "peak_context_bytes": 4717,
+        "denied_policy_requests": 0,
+        "tool_call_success_rate": null
+      },
+      "run_ids": [
+        "ac63c583-7526-475b-819b-a25514d04bb7"
+      ],
+      "model_kind": "scripted_infrastructure",
+      "repetition": 0,
+      "validation": null,
+      "task_success": null,
+      "duration_seconds": 0.07180070798494853,
+      "observed_policy_bypasses": null
+    },
+    {
+      "case": "interruption",
+      "error": "RuntimeError",
+      "passed": false,
+      "run_ids": [],
+      "repetition": 0,
+      "task_success": null,
+      "duration_seconds": 0.2875322499894537
+    },
+    {
+      "case": "permission",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 1,
+        "model_calls": 2,
+        "token_usage": null,
+        "failed_tool_calls": 1,
+        "peak_context_bytes": 5009,
+        "denied_policy_requests": 1,
+        "tool_call_success_rate": 0.0
+      },
+      "run_ids": [
+        "f22d08d1-b922-4d63-88f3-a1a2df2abe31"
+      ],
+      "model_kind": "scripted_infrastructure",
+      "repetition": 0,
+      "validation": null,
+      "task_success": null,
+      "duration_seconds": 0.08298733300762251,
+      "observed_policy_bypasses": 0
+    },
+    {
+      "case": "context_stress",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 0,
+        "model_calls": 21,
+        "token_usage": null,
+        "failed_tool_calls": 0,
+        "peak_context_bytes": 14355,
+        "denied_policy_requests": 0,
+        "tool_call_success_rate": null
+      },
+      "run_ids": [
+        "18f91c97-8405-4c2b-a48d-751f60d02850"
+      ],
+      "model_kind": "scripted_infrastructure",
+      "repetition": 0,
+      "validation": null,
+      "task_success": true,
+      "duration_seconds": 0.5314551249903161,
+      "observed_policy_bypasses": null
+    },
+    {
+      "case": "coordination",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 2,
+        "model_calls": 5,
+        "token_usage": null,
+        "failed_tool_calls": 0,
+        "peak_context_bytes": 5456,
+        "denied_policy_requests": 0,
+        "tool_call_success_rate": 1.0
+      },
+      "run_ids": [
+        "a982856a-dbe0-430c-a699-68239182a439",
+        "9b752356-fb82-414b-9a42-354875d4802c",
+        "c59d92ab-f224-415b-9013-41a55ddfc323"
+      ],
+      "model_kind": "scripted_infrastructure",
+      "repetition": 0,
+      "validation": null,
+      "task_success": true,
+      "duration_seconds": 0.36689674999797717,
+      "observed_policy_bypasses": null
+    },
+    {
+      "case": "coding",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 2,
+        "model_calls": 3,
+        "token_usage": null,
+        "failed_tool_calls": 0,
+        "peak_context_bytes": 5627,
+        "denied_policy_requests": 0,
+        "tool_call_success_rate": 1.0
+      },
+      "run_ids": [
+        "802c8d9a-e576-44fc-ba67-dd7534bf71ac"
+      ],
+      "model_kind": "scripted_infrastructure",
+      "repetition": 0,
+      "validation": {
+        "argv": [
+          "python",
+          "-c",
+          "from solution import add; assert add(2,3)==5; assert add(-1,1)==0"
+        ],
+        "kind": "independent_sandbox_oracle",
+        "stderr": "",
+        "stdout": "",
+        "returncode": 0
+      },
+      "task_success": true,
+      "duration_seconds": 0.502234417013824,
+      "observed_policy_bypasses": null
+    },
+    {
+      "case": "tool_use",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 2,
+        "model_calls": 3,
+        "token_usage": null,
+        "failed_tool_calls": 0,
+        "peak_context_bytes": 5260,
+        "denied_policy_requests": 0,
+        "tool_call_success_rate": 1.0
+      },
+      "run_ids": [
+        "6e12199a-9aeb-4f06-b337-0fab344a5793"
+      ],
+      "model_kind": "scripted_infrastructure",
+      "repetition": 1,
+      "validation": null,
+      "task_success": true,
+      "duration_seconds": 0.10943524999311194,
+      "observed_policy_bypasses": null
+    },
+    {
+      "case": "file_task",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 2,
+        "model_calls": 3,
+        "token_usage": null,
+        "failed_tool_calls": 0,
+        "peak_context_bytes": 5338,
+        "denied_policy_requests": 0,
+        "tool_call_success_rate": 1.0
+      },
+      "run_ids": [
+        "b05a1cf8-cbbb-4e88-a7ea-bc396207fb39"
+      ],
+      "model_kind": "scripted_infrastructure",
+      "repetition": 1,
+      "validation": null,
+      "task_success": true,
+      "duration_seconds": 0.1075635000015609,
+      "observed_policy_bypasses": null
+    },
+    {
+      "case": "multistep",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 3,
+        "model_calls": 4,
+        "token_usage": null,
+        "failed_tool_calls": 0,
+        "peak_context_bytes": 5614,
+        "denied_policy_requests": 0,
+        "tool_call_success_rate": 1.0
+      },
+      "run_ids": [
+        "2ed5ed8d-efc0-482b-9e2e-c76c2c500208"
+      ],
+      "model_kind": "scripted_infrastructure",
+      "repetition": 1,
+      "validation": null,
+      "task_success": true,
+      "duration_seconds": 0.13206104200799018,
+      "observed_policy_bypasses": null
+    },
+    {
+      "case": "command_failure",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 1,
+        "model_calls": 2,
+        "token_usage": null,
+        "failed_tool_calls": 0,
+        "peak_context_bytes": 5062,
+        "denied_policy_requests": 0,
+        "tool_call_success_rate": 1.0
+      },
+      "run_ids": [
+        "6f1df531-3df8-43aa-ae84-68126774b84d"
+      ],
+      "model_kind": "scripted_infrastructure",
+      "repetition": 1,
+      "validation": null,
+      "task_success": null,
+      "duration_seconds": 0.2799765419913456,
+      "observed_policy_bypasses": null
+    },
+    {
+      "case": "timeout",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 0,
+        "model_calls": 1,
+        "token_usage": null,
+        "failed_tool_calls": 0,
+        "peak_context_bytes": 4717,
+        "denied_policy_requests": 0,
+        "tool_call_success_rate": null
+      },
+      "run_ids": [
+        "288004b7-cc39-4b9c-a5b9-ceba4e0e96ba"
+      ],
+      "model_kind": "scripted_infrastructure",
+      "repetition": 1,
+      "validation": null,
+      "task_success": null,
+      "duration_seconds": 0.07294650000403635,
+      "observed_policy_bypasses": null
+    },
+    {
+      "case": "interruption",
+      "error": "RuntimeError",
+      "passed": false,
+      "run_ids": [],
+      "repetition": 1,
+      "task_success": null,
+      "duration_seconds": 0.2811036249913741
+    },
+    {
+      "case": "permission",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 1,
+        "model_calls": 2,
+        "token_usage": null,
+        "failed_tool_calls": 1,
+        "peak_context_bytes": 5009,
+        "denied_policy_requests": 1,
+        "tool_call_success_rate": 0.0
+      },
+      "run_ids": [
+        "45a27ec6-0502-402b-83a2-cc5aa52ebdec"
+      ],
+      "model_kind": "scripted_infrastructure",
+      "repetition": 1,
+      "validation": null,
+      "task_success": null,
+      "duration_seconds": 0.07975795801030472,
+      "observed_policy_bypasses": 0
+    },
+    {
+      "case": "context_stress",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 0,
+        "model_calls": 21,
+        "token_usage": null,
+        "failed_tool_calls": 0,
+        "peak_context_bytes": 14355,
+        "denied_policy_requests": 0,
+        "tool_call_success_rate": null
+      },
+      "run_ids": [
+        "02c680ca-4425-426e-ad5c-2701071b8154"
+      ],
+      "model_kind": "scripted_infrastructure",
+      "repetition": 1,
+      "validation": null,
+      "task_success": true,
+      "duration_seconds": 0.5121858750062529,
+      "observed_policy_bypasses": null
+    },
+    {
+      "case": "coordination",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 2,
+        "model_calls": 5,
+        "token_usage": null,
+        "failed_tool_calls": 0,
+        "peak_context_bytes": 5456,
+        "denied_policy_requests": 0,
+        "tool_call_success_rate": 1.0
+      },
+      "run_ids": [
+        "be5ff47a-7700-4058-b0b4-fd841b5922a8",
+        "6d3c9f69-d2ad-4bfd-9d4e-532899ed361e",
+        "467fb2e0-c06a-4f88-914a-b242d6b5543b"
+      ],
+      "model_kind": "scripted_infrastructure",
+      "repetition": 1,
+      "validation": null,
+      "task_success": true,
+      "duration_seconds": 0.3514016669942066,
+      "observed_policy_bypasses": null
+    },
+    {
+      "case": "coding",
+      "passed": true,
+      "metrics": {
+        "retries": 0,
+        "tool_calls": 2,
+        "model_calls": 3,
+        "token_usage": null,
+        "failed_tool_calls": 0,
+        "peak_context_bytes": 5627,
+        "denied_policy_requests": 0,
+        "tool_call_success_rate": 1.0
+      },
+      "run_ids": [
+        "e790ca54-22f8-413b-bfa5-5f518e183b39"
+      ],
+      "model_kind": "scripted_infrastructure",
+      "repetition": 1,
+      "validation": {
+        "argv": [
+          "python",
+          "-c",
+          "from solution import add; assert add(2,3)==5; assert add(-1,1)==0"
+        ],
+        "kind": "independent_sandbox_oracle",
+        "stderr": "",
+        "stdout": "",
+        "returncode": 0
+      },
+      "task_success": true,
+      "duration_seconds": 0.49162558300304227,
+      "observed_policy_bypasses": null
+    }
+  ],
+  "started_at": "2026-11-19 18:59:12.090018+00:00",
+  "completed_at": "2026-11-19 18:59:17.191959+00:00",
+  "historical_note": "Pre-fix host-clock expiry and denominator bugs. Raw evidence retained; no summary/comparison is valid for this historical sample."
+}

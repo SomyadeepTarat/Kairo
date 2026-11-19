@@ -97,7 +97,7 @@ class Queue:
                 )
             )
 
-    async def claim(self, worker_id: UUID) -> Claim | None:
+    async def claim(self, worker_id: UUID, run_id: UUID | None = None) -> Claim | None:
         async with self.repo.sessions.begin() as session:
             worker = await session.scalar(
                 select(WorkerRow).where(WorkerRow.id == worker_id).with_for_update()
@@ -114,7 +114,11 @@ class Queue:
             now = await database_now(session)
             job = await session.scalar(
                 select(JobRow)
-                .where(JobRow.state == "QUEUED", JobRow.available_at <= now)
+                .where(
+                    JobRow.state == "QUEUED",
+                    JobRow.available_at <= now,
+                    *([JobRow.run_id == run_id] if run_id is not None else []),
+                )
                 .order_by(JobRow.available_at, JobRow.run_id)
                 .limit(1)
                 .with_for_update(skip_locked=True)
@@ -196,14 +200,15 @@ class Queue:
                 )
             return True
 
-    async def expired(self) -> list[Claim]:
+    async def expired(self, run_id: UUID | None = None) -> list[Claim]:
         async with self.repo.sessions.begin() as session:
             now = await database_now(session)
             jobs = await session.scalars(
                 select(JobRow)
                 .where(
                     ((JobRow.state == "CLAIMED") & (JobRow.lease_until <= now))
-                    | (JobRow.state == "REAPING")
+                    | (JobRow.state == "REAPING"),
+                    *([JobRow.run_id == run_id] if run_id is not None else []),
                 )
                 .limit(100)
                 .with_for_update(skip_locked=True)
@@ -366,6 +371,10 @@ class LeaseRecorder:
             raise RecordConflict("Runtime configuration differs from submitted work")
         async with self.queue.repo.sessions.begin() as session:
             await self.queue.owned(session, self.claim)
+            run = await session.get(RunRow, run_id)
+            assert run is not None
+            # A worker may inject an Ollama adapter instead of the scripted template.
+            run.model_configuration = {**run.model_configuration, "adapter": model_name}
 
     async def record(self, event: RuntimeEvent) -> None:
         if (event.run_id, event.attempt_id) != (

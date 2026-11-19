@@ -64,9 +64,9 @@ class Worker:
         path = self.workspaces.root / str(identity)
         return self.workspaces.get(identity) if path.exists() else self.workspaces.create(identity)
 
-    async def work_once(self) -> RunResult | None:
+    async def work_once(self, run_id: UUID | None = None) -> RunResult | None:
         await self.queue.register(self.id, self.capacity)
-        claim = await self.queue.claim(self.id)
+        claim = await self.queue.claim(self.id, run_id)
         if claim is None:
             return None
         with WorkspaceLock(self.workspaces.root, claim.binding.run_id):

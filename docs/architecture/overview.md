@@ -144,3 +144,46 @@ OTel. Each attempt owns model/tool spans; durable events store timings/correlati
 `inspect_trace()` exposes measured metrics/failures and incomplete spans. A virtual
 run parent correlates attempts; workflow handoffs link child run traces. No exporter
 or collector is mandatory. ADR 0013 defines timing and durability limitations.
+
+## M10 evaluation boundary
+
+`evaluation.py` executes a fixed manifest against the existing kernel, tools, queue,
+workflows and recovery. Its independent oracles judge actual artifacts/results.
+PostgreSQL evaluations store configuration fingerprints, per-case outcomes and
+measurements. Atomic claiming forbids implicit replay. Live inference is opt-in
+through `ollama.py`, loopback only, with no model downloads. Scripts and API retrieve
+real results; M11 presentation remains unimplemented. See ADR 0014 for comparability,
+budget splits, deterministic faults, statistical limits and evaluator crash behavior.
+
+## Current M10 flow
+
+```mermaid
+flowchart TD
+    API[Local API / CLI] --> WF[Workflow coordinator]
+    API --> EV[Fixed evaluation driver]
+    EV --> WF
+    WF --> Q[PostgreSQL queue]
+    Q --> W[Local worker + workspace ownership]
+    W --> K[Custom execution kernel]
+    EV --> K
+    K --> C[Bounded working context]
+    C --> M[Scripted fixture or local Ollama]
+    M --> K
+    K --> T[Typed tool registry + permissions]
+    T --> F[Restricted file tools]
+    T --> D[Restricted Docker commands]
+    K --> O[OTel Recorder decorator]
+    O --> R[Run repository: attempt fencing]
+    R --> DB[(PostgreSQL events / checkpoints)]
+    EV --> DB
+    WF --> DB
+```
+
+Context is a view of history, not a replacement for it. Workflow coordination and
+evaluation are control-plane clients of execution. Model responses request actions;
+only the execution plane validates/executes them. OTel observations do not override
+lease fencing or committed state. The dashboard is deliberately outside this scope.
+
+Queued runs insert `LeaseRecorder` between the OTel decorator and repository; it
+checks live lease ownership in the same transaction as each event. Direct runs use
+the repository's current-attempt/state checks without claiming a worker lease.
