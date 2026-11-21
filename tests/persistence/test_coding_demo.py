@@ -37,7 +37,10 @@ def test_coding_fixture_recovers_and_verifies_real_patch(database_url: str, tmp_
     asyncio.run(scenario())
 
 
-@pytest.mark.parametrize("path", ["../outside", "/absolute", ".git/config", ".env", "a/.env.local"])
+@pytest.mark.parametrize(
+    "path",
+    ["../outside", "/absolute", ".git/config", ".env", "a/.env.local", ".", "a/", "a//b", "x\x00y"],
+)
 def test_unsafe_seed_rejected(path: str) -> None:
     with pytest.raises(ValueError):
         JobSpec(task="seed", steps=[FinalStep(kind="final", text="x")], initial_files={path: "bad"})

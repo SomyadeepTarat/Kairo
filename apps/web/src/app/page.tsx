@@ -55,6 +55,7 @@ export default function Dashboard() {
   const [offset, setOffset] = useState(0);
   const [runId, setRunId] = useState("");
   const [run, setRun] = useState<Run | null>(null);
+  const [queuedRun, setQueuedRun] = useState(false);
   const [events, setEvents] = useState<ExecutionEvent[]>([]);
   const [tab, setTab] = useState("Timeline");
   const [inspection, setInspection] = useState<unknown>(null);
@@ -144,6 +145,12 @@ export default function Dashboard() {
     if (!runId) return;
     let alive = true;
     let stream: EventSource | null = null;
+    setQueuedRun(false);
+    fetch(`/api/v1/runs/${runId}/queue`, { cache: "no-store" })
+      .then((response) => {
+        if (response.ok && alive) setQueuedRun(true);
+      })
+      .catch(() => {});
     api<Run>(`/runs/${runId}`)
       .then((value) => {
         if (alive) setRun(value);
@@ -317,11 +324,11 @@ export default function Dashboard() {
               <section className="panel">
                 <div className="panel-heading">
                   <h2>Workers</h2>
-                  <span className="muted">Measured heartbeats</span>
+                  <span className="muted">Six most recent heartbeats</span>
                 </div>
                 {workers.length ? (
                   <div className="worker-grid">
-                    {workers.map((w) => (
+                    {workers.slice(0, 6).map((w) => (
                       <div className="worker" key={w.id}>
                         <code>{compact(w.id)}</code>
                         <strong>
@@ -528,18 +535,20 @@ export default function Dashboard() {
                       {run && (
                         <div className="row">
                           <Status value={run.status} />
-                          <button
-                            className="danger"
-                            disabled={busy || terminal.includes(run.status)}
-                            onClick={() =>
-                              void action(
-                                () => api(`/runs/${runId}/cancel`, {}),
-                                "Cancellation intent accepted.",
-                              )
-                            }
-                          >
-                            Cancel run
-                          </button>
+                          {queuedRun && (
+                            <button
+                              className="danger"
+                              disabled={busy || terminal.includes(run.status)}
+                              onClick={() =>
+                                void action(
+                                  () => api(`/runs/${runId}/cancel`, {}),
+                                  "Cancellation intent accepted.",
+                                )
+                              }
+                            >
+                              Cancel run
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>

@@ -1,0 +1,18 @@
+{
+  "source": "/private/tmp/kairo-release-validation",
+  "version": "0.1.0",
+  "isolated_schema": "kairo_release_a755705713684f198a05c5e6ebb2d735",
+  "python": "3.13.4",
+  "fresh_python_environment": "/private/tmp/kairo-release-validation/.venv/bin/python",
+  "fresh_npm_install": true,
+  "smoke_run_id": "a7092814-50e9-46e2-a1ee-d082f307a12c",
+  "smoke_status": "COMPLETED",
+  "approvals_consumed": 1,
+  "actual_file_verified": true,
+  "tool_calls": 2,
+  "sse_replay_verified": true,
+  "api_version": "0.1.0",
+  "fresh_python_gate_passed": true,
+  "fresh_browser_tests_passed": 3,
+  "isolated_schema_removed_after_validation": true
+}

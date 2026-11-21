@@ -126,3 +126,27 @@ def test_cancel_invalidates_pending_decision(database_url: str, tmp_path: Path) 
             await repo.close()
 
     asyncio.run(scenario())
+
+
+def test_cross_origin_mutation_and_untrusted_host_rejected(database_url: str) -> None:
+    async def scenario() -> None:
+        repo = repository(database_url)
+        try:
+            async with AsyncClient(
+                transport=ASGITransport(app=create_app(repo)), base_url="http://test"
+            ) as c:
+                spec = JobSpec(task="must not queue", steps=[FinalStep(kind="final", text="x")])
+                response = await c.post(
+                    "/api/v1/runs",
+                    json=spec.model_dump(mode="json"),
+                    headers={"Origin": "https://untrusted.example"},
+                )
+                assert response.status_code == 403
+                assert (
+                    await c.get("/api/v1/overview", headers={"Host": "untrusted.example"})
+                ).status_code == 400
+                assert (await c.get("/api/v1/overview")).json()["total"] == 0
+        finally:
+            await repo.close()
+
+    asyncio.run(scenario())

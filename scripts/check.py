@@ -1,5 +1,6 @@
 """Run the shared local quality checks; stop on failure."""
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -19,6 +20,14 @@ def main() -> int:
         result = subprocess.run([sys.executable, "-m", *arguments], cwd=ROOT, check=False)
         if result.returncode:
             return result.returncode
+    if os.environ.get("KAIRO_CHECK_WEB") == "1":
+        for script in ("check", "format:check", "build"):
+            print(f"Checking dashboard: {script}", flush=True)
+            result = subprocess.run(
+                ["npm", "--prefix", "apps/web", "run", script], cwd=ROOT, check=False
+            )
+            if result.returncode:
+                return result.returncode
     return 0
 
 

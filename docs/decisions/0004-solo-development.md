@@ -21,3 +21,10 @@ Consequences: fewer coordination costs but less independent review and less avai
 development capacity. Keep milestone scope narrow; avoid simultaneous branches unless
 needed. Preserve module boundaries and tests even though one person implements both
 sides. No M1 or later implementation is authorized by this workflow change.
+
+## Release licensing update
+
+For M13 the developer explicitly selected **Keep unlicensed for now**. Version
+0.1.0 is a local engineering release, with no repository license grant added and
+no external publication/push. Do not describe this release as licensed open source.
+This explicit user decision updates the PRD's intended open-source distribution.

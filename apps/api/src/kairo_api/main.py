@@ -21,6 +21,9 @@ from kairo_core.state import RunStatus
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
+from starlette.middleware.base import RequestResponseEndpoint
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.responses import Response
 
 from kairo_api.dashboard import dashboard_routes
 from kairo_api.service import serve_execution
@@ -79,6 +82,7 @@ class ReconcileRequest(BaseModel):
 
 
 def create_app(repository: RunRepository | None = None) -> FastAPI:
+    injected_repository = repository is not None
     if repository is None:
         url = os.environ.get("KAIRO_DATABASE_URL")
         if not url:
@@ -111,7 +115,32 @@ def create_app(repository: RunRepository | None = None) -> FastAPI:
                 await asyncio.gather(service, return_exceptions=True)
             await repo.close()
 
-    app = FastAPI(title="Kairo local execution control", version="0.10.0", lifespan=lifespan)
+    app = FastAPI(title="Kairo local execution control", version="0.1.0", lifespan=lifespan)
+
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=["127.0.0.1", "localhost", "[::1]"]
+        + (["test"] if injected_repository else []),
+    )
+
+    @app.middleware("http")
+    async def local_mutation_origin(
+        request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        origin = request.headers.get("origin")
+        if (
+            request.method not in {"GET", "HEAD", "OPTIONS"}
+            and origin is not None
+            and origin
+            not in {
+                "http://127.0.0.1:3000",
+                "http://localhost:3000",
+                "http://127.0.0.1:8000",
+                "http://localhost:8000",
+            }
+        ):
+            return JSONResponse(status_code=403, content={"detail": "Untrusted mutation origin"})
+        return await call_next(request)
 
     @app.exception_handler(SQLAlchemyError)
     async def storage_error(request: Request, exc: SQLAlchemyError) -> JSONResponse:

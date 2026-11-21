@@ -6,7 +6,8 @@ Repository root: `/Users/somyadeeptarat/Desktop/Kairo`.
   to explicit user updates recorded in `docs/decisions/0004-solo-development.md`.
 - The project has one developer. Plan sequential work with review checkpoints;
   Codex assists with mentoring, implementation and review.
-- M11–M13 are authorized sequentially, with a commit after each validated milestone.
+- Current milestone: M13. M11–M13 were authorized sequentially, with a commit
+  after each validated milestone.
   Stop after M13; further scope requires a new request.
 - Consolidate M11–M13 study in `docs/learning/m11-m13.md`.
 - Consolidate M7–M10 study in `docs/learning/m7-m10.md`.
@@ -27,3 +28,6 @@ Repository root: `/Users/somyadeeptarat/Desktop/Kairo`.
 - Use exact repository-relative paths in implementation instructions, and absolute
   links in chat when referencing local files.
 - Never overwrite user changes or commit/push without a request.
+
+- Release 0.1.0 remains unlicensed by explicit user choice. Do not add a license,
+  publish, upload or push without a new request.

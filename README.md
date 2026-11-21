@@ -1,184 +1,97 @@
-# Kairo
+# Kairo · 0.1.0
 
-A local-first agent execution harness for learning reliable, inspectable execution.
-Product specification: [prd.md](prd.md). No paid API or cloud service is required.
+A local-first agent execution harness built for engineering study and inspectable,
+controlled execution. Python/FastAPI, PostgreSQL, Docker, Ollama and Next.js. No
+mandatory paid API or cloud service. Developed by one developer with Codex assistance.
 
-Implemented through **M10**: custom async execution, typed tools, restricted Docker
-commands, PostgreSQL history, durable workers/recovery, bounded context views,
-planner/executor/reviewer coordination, OpenTelemetry traces, and reproducible local
-evaluations. Infrastructure demos/tests use labelled scripted models with real
-operations. Optional behavioral evaluations use local Ollama; no model is downloaded
-automatically. Dashboard and final demonstration/release work remain later milestones.
+Implemented through M13: explicit async kernel/state machine, typed tools and restricted
+workspaces/containers, durable queues/workers, checkpoint recovery and uncertainty
+reconciliation, bounded context views, role coordination, OpenTelemetry/durable traces,
+fixed evaluations, real dashboard controls and a verified reference coding application.
 
-Study at your own pace:
+**Local engineering release; unlicensed by developer choice.** No external publication,
+registry upload or Git push is implied. [PRD](prd.md) is authoritative subject to explicit
+updates in [decisions](docs/decisions/0004-solo-development.md).
 
-- [M0–M3 guide](docs/learning/guide.md)
-- [Separate M3–M6 guide](docs/learning/m3-m6.md)
-- [Separate M7–M10 guide](docs/learning/m7-m10.md)
-- [Architecture](docs/architecture/overview.md), [decisions](docs/decisions/0010-safe-recovery.md),
-  and [milestone validation records](docs/milestones/M6.md)
+## Run locally
 
-There are no separate study completion checklists or learning gates.
-
-## Local setup
+Requirements: Python 3.13.x, uv, Node 22+, npm, Git and running Docker on macOS ARM64.
+Initial open-source dependency/image downloads require network access. From the checkout:
 
 ```sh
-cd /Users/somyadeeptarat/Desktop/Kairo
 uv sync --locked
+npm --prefix apps/web ci
 docker compose -p kairo-m3 -f infrastructure/compose/compose.yaml up -d --wait
 docker build -t kairo-sandbox:local -f infrastructure/docker/Dockerfile.sandbox .
 export KAIRO_DATABASE_URL='postgresql+psycopg://kairo:kairo_local_only@127.0.0.1:55432/kairo'
+export NEXT_TELEMETRY_DISABLED=1
 uv run --locked alembic upgrade head
+uv run --locked python scripts/serve.py
 ```
 
-Use Python 3.13.x, uv and a running Docker-compatible local daemon on macOS ARM64.
-Initial free dependency/image downloads need network access. Task containers do not.
-`.env.example` documents values; Kairo does not automatically load `.env` files.
-These credentials are local-development values. PostgreSQL's named volume retains
-records across restarts. Stop the service without removing that volume when you
-need to conserve resources.
+In another terminal: `npm --prefix apps/web run dev`. Open http://127.0.0.1:3000.
+API docs: http://127.0.0.1:8000/docs. See the full [installation guide](docs/installation.md).
+The app reads exported environment variables, not `.env` automatically.
 
-## Queue a real container/filesystem demonstration
+Tasks can use labelled scripted infrastructure decisions or an installed local Ollama
+model. No model is downloaded automatically. Approval is enabled by default in the UI
+for writes/commands; permissions and exact command grants still apply after approval.
+The dashboard shows actual runs, tools, checkpoints, role handoffs, worker heartbeats,
+replayable SSE events and evaluation results. Bare uvicorn provides inspection/control;
+`scripts/serve.py` also enables the worker/controller/evaluation consumer.
+
+## A real coding example
+
+Use inspection-only API mode so the demonstration owns its targeted worker:
 
 ```sh
-uv run --locked python scripts/enqueue.py examples/scripted-job.json
-uv run --locked python scripts/worker.py --once --root .kairo/workspaces
+KAIRO_EMBEDDED_WORKER=0 uv run --locked python scripts/serve.py
+# Another terminal, with the same database URL and Ollama running:
+uv run --locked python scripts/demo_coding.py --approve-demo-actions
 ```
 
-Enqueue prints a run UUID. The prescribed model sequence executes an explicitly
-approved container command, reads the resulting file and ends. Inspect the returned
-tool outcomes rather than treating the scripted final text as evidence of success.
-Managed workspaces are under `.kairo/workspaces/RUN_UUID` and ignored by Git.
+The explicit flag grants only isolated calculator.py writes and the fixed test command.
+Omit it for manual dashboard approval. The application orchestrates inspection/tests/diff;
+Ollama generates proposal, repaired source and review. An actual worker kill/recovery and
+independent unchanged tests verify the outcome. `--scripted` is a separate prescribed
+infrastructure fixture, not live inference. [Measured evidence](docs/demo/README.md) and
+failed attempts are preserved. This is one small app, not proof of general coding autonomy.
 
-For a continuing service with two concurrent slots and automatic stale-lease reaping:
-
-```sh
-uv run --locked python scripts/worker.py --capacity 2 --root .kairo/workspaces
-```
-
-All local workers must share that root. Ctrl-C requests shutdown and joins cleanup.
-`--once` does one claim and does not run the periodic reaper. Workspaces and local
-locks prevent overlapping owners; containers have no host home/socket/secret mounts,
-no network, a readonly root, nonroot UID and resource/output/time limits.
-Exact argv approval is separate from the command permission.
-
-## Inspect and control
-
-```sh
-uv run --locked uvicorn kairo_api.main:create_app --factory --host 127.0.0.1 --port 8000
-uv run --locked python scripts/demo_history.py --inspect RUN_UUID
-```
-
-Replace RUN_UUID with an actual ID. [Local API docs](http://127.0.0.1:8000/docs):
-
-- `GET /api/v1/runs`, run detail, `/events`, `/tools`, `/checkpoints`, and `/queue`.
-- `GET /api/v1/workers` and `/api/v1/workers/{worker_id}`.
-- `POST /api/v1/runs/{run_id}/cancel` acknowledges cancellation intent.
-- `POST /api/v1/runs/{run_id}/reconcile` records an explicit operator resolution.
-
-This is trusted-local control, without public authentication. Keep the binding on
-loopback. There are no placeholder submission/provider/approval/resume controls.
-
-Unknown mutations remain BLOCKED until investigated. Only when you can prove one
-invocation did not execute may you use:
-
-```sh
-uv run --locked python scripts/reconcile.py RUN_UUID TOOL_UUID \
-  --not-executed --reason 'Evidence that this invocation never reached its side effect'
-```
-
-Alternatively provide `--completed-output` with its known, schema-valid JSON result
-and an evidence reason. The decision is recorded and reaping checks ownership again.
-Do not use reconciliation merely to force progress. Blocked runs can be cancelled.
-The guide explains lost acknowledgments, partial effects and recovery limits.
-
-## Validation
+## Validate and evaluate
 
 ```sh
 export KAIRO_TEST_DATABASE_URL="$KAIRO_DATABASE_URL"
 export KAIRO_TEST_DOCKER=1
+export KAIRO_CHECK_WEB=1
 uv run --locked python scripts/check.py
-uv run --locked pytest tests/persistence --require-postgres --require-docker -q
-```
-
-Tests migrate/drop only their uniquely owned schemas in the dedicated local test DB.
-The full suite includes real containers, competing claims, process termination,
-checkpoint gaps, no duplicate confirmed writes, reconciliation and bounded retries.
-Without service variables, those integration tests explicitly skip; require flags
-make missing configuration an error. Doctor checks CLI presence, not service health.
-
-Kernel-only and file-only demos remain `scripts/demo_kernel.py` and
-`scripts/demo_tools.py`; `scripts/demo_history.py` records a direct scripted run.
-
-## Scope and contribution
-
-One developer owns the project with Codex as mentor/implementation assistant.
-[AGENTS.md](AGENTS.md) records scope. Each new milestone gets relevant tests, notes
-and its requested commit. M4: `200ab42`; M5: `b227eec`; M6 adds validated checkpointed recovery and reconciliation.
-Stop at M10 unless another milestone is explicitly requested. There is no claim of
-exactly-once external effects, hostile-tenant security, distributed-host locking,
-complete secret detection or recovery from lost/externally changed workspace data.
-
-M7 context policies are configurable in job JSON using `context_budget_bytes`,
-`tool_output_bytes` and `context_strategy` (`recent` or `compact`). These are UTF-8
-byte limits, not token counts. Study the implementation in `docs/learning/m7-m10.md`.
-
-M8: after migrating PostgreSQL, run the explicitly scripted role example with
-`uv run --locked python scripts/workflow.py run examples/scripted-workflow.json`.
-The planner validates a dependency graph; executors use real files; review/handoffs
-are durable. API: POST `/api/v1/workflows`, GET `/api/v1/workflows/{id}`, POST
-`/api/v1/workflows/{id}/advance`. See ADR 0012 for the fresh-workspace revision policy.
-
-M9: GET `/api/v1/runs/{id}/trace` or run
-`uv run --locked python scripts/trace.py RUN_UUID` for measured span timing,
-failure codes, retries and unfinished operations. OpenTelemetry SDK instrumentation
-runs locally without a collector. Unknown provider token usage remains null.
-
-
-## Evaluate reproducibly
-
-```sh
+npm --prefix apps/web test
 uv run --locked python scripts/evaluate.py run --repetitions 2
-uv run --locked python scripts/evaluate.py run --strategy compact --repetitions 2
-uv run --locked python scripts/evaluate.py compare LEFT_UUID RIGHT_UUID
-uv run --locked python scripts/evaluate.py run --ollama qwen3:4b --cases file_task coding
 ```
 
-The last command requires Ollama running and that model already installed. Other
-models can be selected explicitly. Deterministic infrastructure cases and live
-behavioral outcomes are labelled separately; assertions inspect real files/tests.
-No claim of general model quality follows from this small suite. Use `--mode multi`
-or `--no-recovery` for the other comparisons. Changed source/environment/budgets are
-rejected as incomparable. Baselines are in `benchmarks/results/` with limitations.
+The full gate includes Python checks/tests and frontend typing/format/build. Browser
+tests require the real API/worker and Chrome (or configured free Playwright Chromium).
+Service tests use uniquely owned PostgreSQL schemas and actual Docker. Without service
+flags they explicitly skip; the release record states what ran. Live inference is a
+separate measurement, never a randomized unit-test dependency. Source checkout commands
+use versioned migrations, manifests and fixtures included in the source distribution.
 
-POST `/api/v1/evaluations` queues a configuration; GET collection/detail/`results`
-inspects persisted outcomes. Execute an API submission using
-`uv run --locked python scripts/evaluate.py execute EVALUATION_UUID`.
-A completed evaluation can contain failed cases. Partial results survive interruption;
-evaluations are never automatically replayed after an unknown process outcome.
+Evaluation comparisons enforce recorded conditions. Scenario correctness differs from
+task completion. Unknown token/resource data stays unknown. Historical
+[M10 observations](benchmarks/results/README.md) and [release evidence](docs/release/README.md)
+include failures and sample-size limitations. No fabricated throughput/coverage claims.
 
+## Study and architecture
 
-## Local dashboard (M11)
+- [M0–M3 guide](docs/learning/guide.md)
+- [M3–M6 guide](docs/learning/m3-m6.md)
+- [M7–M10 guide](docs/learning/m7-m10.md)
+- [M11–M13 guide](docs/learning/m11-m13.md)
+- [Architecture](docs/architecture/overview.md), [state machine](docs/architecture/state-machine.md),
+  [API](docs/api/README.md), [milestone records](docs/milestones/M13.md)
+- [Security and known failures](docs/security.md), [development notes](docs/contributing.md)
 
-After database migration, run `uv run --locked python scripts/serve.py` to start the
-loopback API, worker, coordinator and evaluation consumer. In another terminal run
-`npm --prefix apps/web ci` and `npm --prefix apps/web run dev`, then open
-http://127.0.0.1:3000. The UI submits real work; approval is enabled by default for
-writes/commands. Scripted infrastructure examples are labelled no-inference.
-Ollama tasks use only the selected local installed model. Stop both processes with
-Ctrl-C. The dashboard is trusted-local, not authenticated for public hosting.
-
-Study `docs/learning/m11-m13.md`. Frontend checks: `npm --prefix apps/web run check`,
-`npm --prefix apps/web run build`, and `npm --prefix apps/web test` with the real API
-service running. Browser tests currently use locally installed Google Chrome.
-
-
-## Real reference coding task (M12)
-
-Run the API with `KAIRO_EMBEDDED_WORKER=0 uv run --locked python scripts/serve.py`
-so the demo owns its targeted worker. With Ollama running and qwen3:4b installed:
-`uv run --locked python scripts/demo_coding.py --approve-demo-actions`.
-Omit the flag for manual dashboard approvals. The harness orchestrates inspection/
-tests/diff, Ollama generates the patch/review, and a real worker crash/recovery is
-included. Independent unchanged tests judge the result. `--scripted` is a labelled
-infrastructure fixture. See `docs/demo/README.md` for actual evidence and failures.
+Trusted-local use only. No authentication for public hosting, hostile-tenant sandbox
+guarantee, distributed-host lock protocol, complete secret detection, filesystem rollback,
+or exactly-once external side-effect guarantee. Unknown mutations block for evidence-based
+reconciliation. Never force a resume merely to make a demo finish. Human study is not
+marked complete by passing tests. Requested scope ends at M13.

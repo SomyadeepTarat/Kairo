@@ -1,0 +1,1339 @@
+{
+  "release": "0.1.0",
+  "evaluations": [
+    {
+      "id": "dfb73f74-cff8-466a-9ba8-0b7a6e602766",
+      "configuration": {
+        "mode": "single",
+        "seed": 0,
+        "cases": [
+          "tool_use",
+          "file_task",
+          "multistep",
+          "command_failure",
+          "timeout",
+          "interruption",
+          "permission",
+          "context_stress",
+          "coordination",
+          "coding"
+        ],
+        "model": "",
+        "suite": {
+          "id": "kairo-infrastructure-v1",
+          "cases": [
+            {
+              "id": "tool_use",
+              "success": "List and search real workspace data"
+            },
+            {
+              "id": "file_task",
+              "success": "artifact.txt contains exactly benchmark artifact"
+            },
+            {
+              "id": "multistep",
+              "success": "Write, search and read the expected value"
+            },
+            {
+              "id": "command_failure",
+              "success": "Observe exit code 7 without claiming command success"
+            },
+            {
+              "id": "timeout",
+              "success": "A slow model call reaches STEP_TIMEOUT"
+            },
+            {
+              "id": "interruption",
+              "success": "Confirmed append occurs once; recovery completes only when enabled"
+            },
+            {
+              "id": "permission",
+              "success": "Forbidden write is denied and creates no file"
+            },
+            {
+              "id": "context_stress",
+              "success": "All model inputs respect the byte budget"
+            },
+            {
+              "id": "coordination",
+              "success": "Planner/executor/reviewer completes with inspectable artifact"
+            },
+            {
+              "id": "coding",
+              "success": "Generated Python implementation passes actual sandbox assertions"
+            }
+          ],
+          "version": 1
+        },
+        "backend": "scripted",
+        "budgets": {
+          "max_steps": 32,
+          "run_seconds": 120,
+          "step_seconds": 30,
+          "sandbox_image": "kairo-sandbox:local"
+        },
+        "recovery": true,
+        "strategy": "recent",
+        "environment": {
+          "python": "3.13.4",
+          "system": "Darwin",
+          "machine": "arm64",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "dependencies": {
+            "httpx": "0.28.1",
+            "pydantic": "2.14.2",
+            "sqlalchemy": "2.1.8",
+            "opentelemetry-sdk": "1.45.2"
+          },
+          "sandbox_image_id": "sha256:2193245e517456d6fb15a07f200bfe8556cca8a088866e01a11434b273b7664a"
+        },
+        "repetitions": 2,
+        "suite_sha256": "b00d0cdcb0826c5e468d12e7634a4e8f970c7446ae0cfdb6805a583df34f2cc3",
+        "source_sha256": "3209b217c5a29936fecaa2c64aaa684accff108bbbba80382cec2285762870da",
+        "model_metadata": null,
+        "context_budget_bytes": 16000
+      },
+      "status": "COMPLETED",
+      "results": [
+        {
+          "case": "tool_use",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 2,
+            "model_calls": 3,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5260,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "9098e8e2-8fde-4215-9246-7d3eb795f5a6"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.11851283299620263,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "file_task",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 2,
+            "model_calls": 3,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5338,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "54691f59-ebd4-4547-a059-329cecb87071"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.10967204099870287,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "multistep",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 3,
+            "model_calls": 4,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5614,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "69f5ad97-aba4-4c33-8c17-5aeb0148d334"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.1295930829946883,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "command_failure",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 1,
+            "model_calls": 2,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5062,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "2c1ab3f8-ae51-4778-9850-f79bf1d4f3d1"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": null,
+          "task_success": null,
+          "duration_seconds": 0.28682358301011845,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "timeout",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 0,
+            "model_calls": 1,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 4717,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": null
+          },
+          "run_ids": [
+            "727fa010-42e7-46e1-be9b-924951eeba4f"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": null,
+          "task_success": null,
+          "duration_seconds": 0.07193612499395385,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "interruption",
+          "passed": true,
+          "metrics": {
+            "retries": 1,
+            "tool_calls": 1,
+            "model_calls": 2,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5062,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "65cd7b81-d94d-478d-b140-d62ecbe345da"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 1.5459806250000838,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "permission",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 1,
+            "model_calls": 2,
+            "token_usage": null,
+            "failed_tool_calls": 1,
+            "peak_context_bytes": 5009,
+            "denied_policy_requests": 1,
+            "tool_call_success_rate": 0.0
+          },
+          "run_ids": [
+            "1c13a71c-39d7-45ae-a9c6-3c1d37cee588"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": null,
+          "task_success": null,
+          "duration_seconds": 0.09121745798620395,
+          "observed_policy_bypasses": 0
+        },
+        {
+          "case": "context_stress",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 0,
+            "model_calls": 21,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 14355,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": null
+          },
+          "run_ids": [
+            "4c6616a1-c3ca-46a7-8c26-b8b7c50a2fec"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.5210399999923538,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "coordination",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 2,
+            "model_calls": 5,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5456,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "22dc6297-6643-4360-b537-14d754faae74",
+            "07ffeb05-387e-4517-8af1-1103d50cee2a",
+            "3ccc9fcc-d372-4288-9c7b-614c1c57980e"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.37739841698203236,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "coding",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 2,
+            "model_calls": 3,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5627,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "189687e7-3c20-479a-b896-0f1aa5f0c531"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": {
+            "argv": [
+              "python",
+              "-c",
+              "from solution import add; assert add(2,3)==5; assert add(-1,1)==0"
+            ],
+            "kind": "independent_sandbox_oracle",
+            "stderr": "",
+            "stdout": "",
+            "returncode": 0
+          },
+          "task_success": true,
+          "duration_seconds": 0.4848969579907134,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "tool_use",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 2,
+            "model_calls": 3,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5260,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "a90029ac-26f1-4296-8ccb-47ed964837c0"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.1077639999857638,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "file_task",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 2,
+            "model_calls": 3,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5338,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "c6d3bfcb-abda-4f16-b180-202b0918e381"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.10754945798544213,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "multistep",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 3,
+            "model_calls": 4,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5614,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "c5fe1a87-a2b7-423e-9f2a-8c2f30a4ab01"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.13198129201191477,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "command_failure",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 1,
+            "model_calls": 2,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5062,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "9f900407-cbe1-4da2-a015-1a8b12ae7035"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": null,
+          "task_success": null,
+          "duration_seconds": 0.28688583298935555,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "timeout",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 0,
+            "model_calls": 1,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 4717,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": null
+          },
+          "run_ids": [
+            "0011f545-5f01-48fa-b91b-2b41bfb2cba1"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": null,
+          "task_success": null,
+          "duration_seconds": 0.07111420898581855,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "interruption",
+          "passed": true,
+          "metrics": {
+            "retries": 1,
+            "tool_calls": 1,
+            "model_calls": 2,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5062,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "e681e52c-171d-40d4-a385-394bf710532a"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 1.5082154999836348,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "permission",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 1,
+            "model_calls": 2,
+            "token_usage": null,
+            "failed_tool_calls": 1,
+            "peak_context_bytes": 5009,
+            "denied_policy_requests": 1,
+            "tool_call_success_rate": 0.0
+          },
+          "run_ids": [
+            "c11e1548-b033-4e17-ae2f-0623479d2b23"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": null,
+          "task_success": null,
+          "duration_seconds": 0.11862900000414811,
+          "observed_policy_bypasses": 0
+        },
+        {
+          "case": "context_stress",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 0,
+            "model_calls": 21,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 14355,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": null
+          },
+          "run_ids": [
+            "d820d54d-1677-458a-af0a-76d4d8daa2f2"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.5510228330094833,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "coordination",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 2,
+            "model_calls": 5,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5456,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "937bdbbb-2a5f-41f0-b459-dbd55c4f3dcd",
+            "7f65220f-a933-48f3-bf54-1d66aafbe870",
+            "f350bd3c-d1b5-4500-89a4-ddcddf0387a1"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.36745470800087787,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "coding",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 2,
+            "model_calls": 3,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5627,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "4cf5ca22-2548-4caa-8ed4-9431c4615b39"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": {
+            "argv": [
+              "python",
+              "-c",
+              "from solution import add; assert add(2,3)==5; assert add(-1,1)==0"
+            ],
+            "kind": "independent_sandbox_oracle",
+            "stderr": "",
+            "stdout": "",
+            "returncode": 0
+          },
+          "task_success": true,
+          "duration_seconds": 0.5015573329874314,
+          "observed_policy_bypasses": null
+        }
+      ],
+      "started_at": "2026-11-21 16:53:30.090620+00:00",
+      "completed_at": "2026-11-21 16:53:37.646965+00:00",
+      "summary": {
+        "interrupted_task_completion_rate": 1.0,
+        "observed_policy_bypasses": 0,
+        "scenario_count": 20,
+        "passed_scenarios": 20,
+        "task_count": 14,
+        "task_successes": 14,
+        "task_completion_rate": 1.0,
+        "outcome_groups": {
+          "scripted_infrastructure": {
+            "cases": 20,
+            "passed": 20
+          }
+        },
+        "total_case_seconds": 7.489245288888924
+      }
+    },
+    {
+      "id": "94fbe901-27e2-45af-97e8-fdb335ee05c6",
+      "configuration": {
+        "mode": "single",
+        "seed": 0,
+        "cases": [
+          "tool_use",
+          "file_task",
+          "multistep",
+          "command_failure",
+          "timeout",
+          "interruption",
+          "permission",
+          "context_stress",
+          "coordination",
+          "coding"
+        ],
+        "model": "",
+        "suite": {
+          "id": "kairo-infrastructure-v1",
+          "cases": [
+            {
+              "id": "tool_use",
+              "success": "List and search real workspace data"
+            },
+            {
+              "id": "file_task",
+              "success": "artifact.txt contains exactly benchmark artifact"
+            },
+            {
+              "id": "multistep",
+              "success": "Write, search and read the expected value"
+            },
+            {
+              "id": "command_failure",
+              "success": "Observe exit code 7 without claiming command success"
+            },
+            {
+              "id": "timeout",
+              "success": "A slow model call reaches STEP_TIMEOUT"
+            },
+            {
+              "id": "interruption",
+              "success": "Confirmed append occurs once; recovery completes only when enabled"
+            },
+            {
+              "id": "permission",
+              "success": "Forbidden write is denied and creates no file"
+            },
+            {
+              "id": "context_stress",
+              "success": "All model inputs respect the byte budget"
+            },
+            {
+              "id": "coordination",
+              "success": "Planner/executor/reviewer completes with inspectable artifact"
+            },
+            {
+              "id": "coding",
+              "success": "Generated Python implementation passes actual sandbox assertions"
+            }
+          ],
+          "version": 1
+        },
+        "backend": "scripted",
+        "budgets": {
+          "max_steps": 32,
+          "run_seconds": 120,
+          "step_seconds": 30,
+          "sandbox_image": "kairo-sandbox:local"
+        },
+        "recovery": true,
+        "strategy": "compact",
+        "environment": {
+          "python": "3.13.4",
+          "system": "Darwin",
+          "machine": "arm64",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "dependencies": {
+            "httpx": "0.28.1",
+            "pydantic": "2.14.2",
+            "sqlalchemy": "2.1.8",
+            "opentelemetry-sdk": "1.45.2"
+          },
+          "sandbox_image_id": "sha256:2193245e517456d6fb15a07f200bfe8556cca8a088866e01a11434b273b7664a"
+        },
+        "repetitions": 2,
+        "suite_sha256": "b00d0cdcb0826c5e468d12e7634a4e8f970c7446ae0cfdb6805a583df34f2cc3",
+        "source_sha256": "3209b217c5a29936fecaa2c64aaa684accff108bbbba80382cec2285762870da",
+        "model_metadata": null,
+        "context_budget_bytes": 16000
+      },
+      "status": "COMPLETED",
+      "results": [
+        {
+          "case": "tool_use",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 2,
+            "model_calls": 3,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5260,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "429c3033-27b2-4ee0-ae54-a739f3d4a300"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.1052661249996163,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "file_task",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 2,
+            "model_calls": 3,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5338,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "65589f81-afd2-48b3-8d4a-c1870676f0ed"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.11314266701810993,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "multistep",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 3,
+            "model_calls": 4,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5614,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "183de05b-1057-4a8d-a86e-2b3bf0dd26e1"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.14129224998760037,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "command_failure",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 1,
+            "model_calls": 2,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5062,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "1b098847-9817-42a6-a0ab-e17d43e5ec42"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": null,
+          "task_success": null,
+          "duration_seconds": 0.2818813339981716,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "timeout",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 0,
+            "model_calls": 1,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 4717,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": null
+          },
+          "run_ids": [
+            "b91f1ff9-015c-4ad4-8da1-686707614ea4"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": null,
+          "task_success": null,
+          "duration_seconds": 0.07137833299930207,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "interruption",
+          "passed": true,
+          "metrics": {
+            "retries": 1,
+            "tool_calls": 1,
+            "model_calls": 2,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5062,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "0dfbe747-d5e4-462f-933d-11b2e6ba910d"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 1.5320155000081286,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "permission",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 1,
+            "model_calls": 2,
+            "token_usage": null,
+            "failed_tool_calls": 1,
+            "peak_context_bytes": 5009,
+            "denied_policy_requests": 1,
+            "tool_call_success_rate": 0.0
+          },
+          "run_ids": [
+            "5d1d45e1-ab8b-4d4c-855e-3db9679bd8fa"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": null,
+          "task_success": null,
+          "duration_seconds": 0.10495233300025575,
+          "observed_policy_bypasses": 0
+        },
+        {
+          "case": "context_stress",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 0,
+            "model_calls": 21,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 16000,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": null
+          },
+          "run_ids": [
+            "34e8567f-6207-4c0b-8809-812fd0dac45e"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.6042771250067744,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "coordination",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 2,
+            "model_calls": 5,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5456,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "218162f3-65ba-481a-9d3a-2c73306e2647",
+            "68333f32-93d3-4f4f-8b30-35dcb52166a1",
+            "89a4c996-a2b2-4514-8796-372a62a6398b"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.36138441698858514,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "coding",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 2,
+            "model_calls": 3,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5627,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "b8d3bdba-6268-40f8-b4f1-0f8f1f06db46"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 0,
+          "validation": {
+            "argv": [
+              "python",
+              "-c",
+              "from solution import add; assert add(2,3)==5; assert add(-1,1)==0"
+            ],
+            "kind": "independent_sandbox_oracle",
+            "stderr": "",
+            "stdout": "",
+            "returncode": 0
+          },
+          "task_success": true,
+          "duration_seconds": 0.48055462501361035,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "tool_use",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 2,
+            "model_calls": 3,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5260,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "a92604ca-71a4-43ce-b999-41b97666333d"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.11716283397981897,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "file_task",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 2,
+            "model_calls": 3,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5338,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "0ef91ac7-7927-49c3-b23a-342db18be598"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.11729249998461455,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "multistep",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 3,
+            "model_calls": 4,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5614,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "faa058cf-03cb-49d5-8ede-b1809a15ff82"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.1430487910110969,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "command_failure",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 1,
+            "model_calls": 2,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5062,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "4b453bb5-0423-46c2-8613-961a8ff4d1ed"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": null,
+          "task_success": null,
+          "duration_seconds": 0.3049550830037333,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "timeout",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 0,
+            "model_calls": 1,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 4717,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": null
+          },
+          "run_ids": [
+            "512d5304-5dc0-43d1-95c8-bd55d84664a1"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": null,
+          "task_success": null,
+          "duration_seconds": 0.07795816598809324,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "interruption",
+          "passed": true,
+          "metrics": {
+            "retries": 1,
+            "tool_calls": 1,
+            "model_calls": 2,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5062,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "1b2f422e-6c24-4d3d-8538-ae504b7c6aaa"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 1.5836412910139188,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "permission",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 1,
+            "model_calls": 2,
+            "token_usage": null,
+            "failed_tool_calls": 1,
+            "peak_context_bytes": 5009,
+            "denied_policy_requests": 1,
+            "tool_call_success_rate": 0.0
+          },
+          "run_ids": [
+            "86474cea-9ea2-444d-8537-f42721b6b744"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": null,
+          "task_success": null,
+          "duration_seconds": 0.1220930420095101,
+          "observed_policy_bypasses": 0
+        },
+        {
+          "case": "context_stress",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 0,
+            "model_calls": 21,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 16000,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": null
+          },
+          "run_ids": [
+            "ca0d33a7-2c57-46c4-9ef2-939be384c4d3"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.5993047079828102,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "coordination",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 2,
+            "model_calls": 5,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5456,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "59ca774d-87b6-4e11-bc22-5fce18c72358",
+            "c0f1cbf7-8b7d-470d-bbb5-ace28d5c5792",
+            "3cc36373-5e11-40b1-b574-5f8832a7b7a4"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": null,
+          "task_success": true,
+          "duration_seconds": 0.3723772499943152,
+          "observed_policy_bypasses": null
+        },
+        {
+          "case": "coding",
+          "passed": true,
+          "metrics": {
+            "retries": 0,
+            "tool_calls": 2,
+            "model_calls": 3,
+            "token_usage": null,
+            "failed_tool_calls": 0,
+            "peak_context_bytes": 5627,
+            "denied_policy_requests": 0,
+            "tool_call_success_rate": 1.0
+          },
+          "run_ids": [
+            "54b0cca8-ab60-4eff-b1c6-3352529a3e9c"
+          ],
+          "model_kind": "scripted_infrastructure",
+          "repetition": 1,
+          "validation": {
+            "argv": [
+              "python",
+              "-c",
+              "from solution import add; assert add(2,3)==5; assert add(-1,1)==0"
+            ],
+            "kind": "independent_sandbox_oracle",
+            "stderr": "",
+            "stdout": "",
+            "returncode": 0
+          },
+          "task_success": true,
+          "duration_seconds": 0.4985604170069564,
+          "observed_policy_bypasses": null
+        }
+      ],
+      "started_at": "2026-11-21 16:53:37.682716+00:00",
+      "completed_at": "2026-11-21 16:53:45.483292+00:00",
+      "summary": {
+        "interrupted_task_completion_rate": 1.0,
+        "observed_policy_bypasses": 0,
+        "scenario_count": 20,
+        "passed_scenarios": 20,
+        "task_count": 14,
+        "task_successes": 14,
+        "task_completion_rate": 1.0,
+        "outcome_groups": {
+          "scripted_infrastructure": {
+            "cases": 20,
+            "passed": 20
+          }
+        },
+        "total_case_seconds": 7.732538790995022
+      }
+    }
+  ],
+  "comparison": {
+    "paired_case_timings": [
+      {
+        "case": "tool_use",
+        "n": 2,
+        "left_mean_seconds": 0.11313841649098322,
+        "right_mean_seconds": 0.11121447948971763,
+        "mean_delta_seconds": -0.0019239370012655854,
+        "left_sample_sd": 0.0076005727115231085,
+        "right_sample_sd": 0.008412243593704207
+      },
+      {
+        "case": "file_task",
+        "n": 2,
+        "left_mean_seconds": 0.1086107494920725,
+        "right_mean_seconds": 0.11521758350136224,
+        "mean_delta_seconds": 0.0066068340092897415,
+        "left_sample_sd": 0.0015008928423080427,
+        "right_sample_sd": 0.0029343750314069026
+      },
+      {
+        "case": "multistep",
+        "n": 2,
+        "left_mean_seconds": 0.13078718750330154,
+        "right_mean_seconds": 0.14217052049934864,
+        "mean_delta_seconds": 0.011383332996047102,
+        "left_sample_sd": 0.001688718790971699,
+        "right_sample_sd": 0.001242062069146761
+      },
+      {
+        "case": "command_failure",
+        "n": 2,
+        "left_mean_seconds": 0.286854707999737,
+        "right_mean_seconds": 0.29341820850095246,
+        "mean_delta_seconds": 0.006563500501215458,
+        "left_sample_sd": 4.4017382447271323e-05,
+        "right_sample_sd": 0.016315604389229032
+      },
+      {
+        "case": "timeout",
+        "n": 2,
+        "left_mean_seconds": 0.0715251669898862,
+        "right_mean_seconds": 0.07466824949369766,
+        "mean_delta_seconds": 0.0031430825038114563,
+        "left_sample_sd": 0.0005811823829182509,
+        "right_sample_sd": 0.004652644525449183
+      },
+      {
+        "case": "interruption",
+        "n": 2,
+        "left_mean_seconds": 1.5270980624918593,
+        "right_mean_seconds": 1.5578283955110237,
+        "mean_delta_seconds": 0.03073033301916439,
+        "left_sample_sd": 0.02670397599148883,
+        "right_sample_sd": 0.036504946904313745
+      },
+      {
+        "case": "permission",
+        "n": 2,
+        "left_mean_seconds": 0.10492322899517603,
+        "right_mean_seconds": 0.11352268750488292,
+        "mean_delta_seconds": 0.008599458509706892,
+        "left_sample_sd": 0.019382887243668292,
+        "right_sample_sd": 0.0121203115747891
+      },
+      {
+        "case": "context_stress",
+        "n": 2,
+        "left_mean_seconds": 0.5360314165009186,
+        "right_mean_seconds": 0.6017909164947923,
+        "mean_delta_seconds": 0.06575949999387376,
+        "left_sample_sd": 0.021201064545596147,
+        "right_sample_sd": 0.003516029796532536
+      },
+      {
+        "case": "coordination",
+        "n": 2,
+        "left_mean_seconds": 0.3724265624914551,
+        "right_mean_seconds": 0.3668808334914502,
+        "mean_delta_seconds": -0.00554572900000494,
+        "left_sample_sd": 0.007031264050719913,
+        "right_sample_sd": 0.007773106762803025
+      },
+      {
+        "case": "coding",
+        "n": 2,
+        "left_mean_seconds": 0.4932271454890724,
+        "right_mean_seconds": 0.4895575210102834,
+        "mean_delta_seconds": -0.0036696244787890464,
+        "left_sample_sd": 0.011780664137290116,
+        "right_sample_sd": 0.012732017619129446
+      }
+    ],
+    "left_model_metadata": null,
+    "right_model_metadata": null,
+    "left": "dfb73f74-cff8-466a-9ba8-0b7a6e602766",
+    "right": "94fbe901-27e2-45af-97e8-fdb335ee05c6",
+    "changed_strategies": {
+      "strategy": [
+        "recent",
+        "compact"
+      ]
+    },
+    "left_summary": {
+      "interrupted_task_completion_rate": 1.0,
+      "observed_policy_bypasses": 0,
+      "scenario_count": 20,
+      "passed_scenarios": 20,
+      "task_count": 14,
+      "task_successes": 14,
+      "task_completion_rate": 1.0,
+      "outcome_groups": {
+        "scripted_infrastructure": {
+          "cases": 20,
+          "passed": 20
+        }
+      },
+      "total_case_seconds": 7.489245288888924
+    },
+    "right_summary": {
+      "interrupted_task_completion_rate": 1.0,
+      "observed_policy_bypasses": 0,
+      "scenario_count": 20,
+      "passed_scenarios": 20,
+      "task_count": 14,
+      "task_successes": 14,
+      "task_completion_rate": 1.0,
+      "outcome_groups": {
+        "scripted_infrastructure": {
+          "cases": 20,
+          "passed": 20
+        }
+      },
+      "total_case_seconds": 7.732538790995022
+    },
+    "caution": "Small local samples; deterministic infrastructure outcomes are not model quality evidence."
+  },
+  "scope": "Deterministic infrastructure, real operations, scripted decisions; not model quality."
+}

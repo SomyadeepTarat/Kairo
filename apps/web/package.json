@@ -1,13 +1,15 @@
 {
   "name": "kairo-dashboard",
-  "version": "0.11.0",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
     "start": "next start --hostname 127.0.0.1",
     "check": "tsc --noEmit",
-    "test": "playwright test"
+    "test": "playwright test",
+    "format:check": "prettier --check src tests *.ts *.json *.mjs scripts/*.mjs",
+    "record-demo": "node scripts/record-demo.mjs"
   },
   "dependencies": {
     "next": "^16.0.0",

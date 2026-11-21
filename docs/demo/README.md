@@ -24,3 +24,8 @@ Do not present these failures as successful agent tasks or general model ranking
 This is one small reference application, not proof of arbitrary coding autonomy.
 UUIDs/workspace paths refer to the validation machine. Fresh runs create fresh IDs.
 See [the study guide](../learning/m11-m13.md) and ADR 0016 for commands and assumptions.
+
+
+[Recorded dashboard walkthrough](coding-demo.webm) · [Dashboard screenshot](dashboard.png).
+This is an inspection of persisted evidence, not a simulated or replayed real-time
+agent session. The raw report remains the source for timing and operation details.

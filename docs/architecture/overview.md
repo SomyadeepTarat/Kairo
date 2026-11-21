@@ -204,3 +204,12 @@ The caller supplies bounded fixture files; preparation never resets a started ru
 `coding_demo.py` drives real killed-worker recovery and independent acceptance oracles.
 No host shell, model-generated test rewrite, implicit approval or scripted patch is
 presented as live inference. The general-purpose kernel remains available separately.
+
+## M13 release boundary
+
+Version 0.1.0 is a local, unlicensed engineering release. Generated OpenAPI reflects
+implemented routes; source archives include runtime/migrations/frontend/fixtures/tests.
+The full gate can include web checks; separate clean-source installation and browser
+execution validate ignored-state independence. Host/mutation-Origin checks reduce
+local browser exposure but do not create public authentication. See ADR 0017 and
+`docs/security.md` for explicit limits. No further milestone scope is implied.

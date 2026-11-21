@@ -1,4 +1,4 @@
-"""Durable, explicitly scripted workload format; not live model inference."""
+"""Validated durable workloads for scripted fixtures and local model execution."""
 
 from pathlib import PurePosixPath
 from typing import Annotated, Literal, Self
@@ -84,6 +84,8 @@ class JobSpec(Schema):
             path = PurePosixPath(name)
             if (
                 not name
+                or "\x00" in name
+                or any(part in {"", "."} for part in name.split("/"))
                 or path.is_absolute()
                 or ".." in path.parts
                 or "\\" in name

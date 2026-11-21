@@ -11,6 +11,7 @@ from scripts import check as check_runner
 def test_check_sequence_stops_at_failure(
     monkeypatch: pytest.MonkeyPatch, fail_at: int | None
 ) -> None:
+    monkeypatch.delenv("KAIRO_CHECK_WEB", raising=False)
     calls: list[list[str]] = []
 
     def run_command(
@@ -29,3 +30,18 @@ def test_check_sequence_stops_at_failure(
     assert [arguments[2:] for arguments in calls] == [
         list(arguments) for arguments in check_runner.COMMANDS[:expected_count]
     ]
+
+
+def test_optional_web_gate_propagates_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("KAIRO_CHECK_WEB", "1")
+    calls: list[list[str]] = []
+
+    def command(
+        arguments: list[str], *, cwd: object, check: bool
+    ) -> subprocess.CompletedProcess[str]:
+        calls.append(arguments)
+        return subprocess.CompletedProcess(arguments, 9 if arguments[0] == "npm" else 0)
+
+    monkeypatch.setattr(subprocess, "run", command)
+    assert check_runner.main() == 9
+    assert calls[-1] == ["npm", "--prefix", "apps/web", "run", "check"]

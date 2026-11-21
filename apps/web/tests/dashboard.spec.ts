@@ -24,14 +24,12 @@ test("real submission, approval, completion and inspection", async ({
     .getByRole("button", { name: /Approvals/ })
     .first()
     .click();
-  const approval = page
-    .locator("article.approval")
-    .filter({
-      has: page.getByRole("button", {
-        name: `Run ${id.slice(0, 8)}`,
-        exact: true,
-      }),
-    });
+  const approval = page.locator("article.approval").filter({
+    has: page.getByRole("button", {
+      name: `Run ${id.slice(0, 8)}`,
+      exact: true,
+    }),
+  });
   await expect(
     approval.getByRole("button", { name: "Approve action" }),
   ).toBeVisible();
@@ -76,4 +74,31 @@ test("mobile layout and real overview", async ({ page }) => {
     path: "/private/tmp/kairo-m11-mobile.png",
     fullPage: true,
   });
+});
+
+test("direct evaluation runs do not offer an unsupported queue cancel", async ({
+  page,
+  request,
+}) => {
+  const response = await request.post("/api/v1/evaluations", {
+    data: { cases: ["file_task"] },
+  });
+  expect(response.status()).toBe(201);
+  const { id } = await response.json();
+  await expect
+    .poll(
+      async () =>
+        (await (await request.get(`/api/v1/evaluations/${id}`)).json()).status,
+      { timeout: 20000 },
+    )
+    .toBe("COMPLETED");
+  const evaluation = await (
+    await request.get(`/api/v1/evaluations/${id}`)
+  ).json();
+  const run = evaluation.results[0].run_ids[0];
+  await page.goto(`/#run=${run}`);
+  await expect(page.locator(".panel-heading .status")).toHaveText("COMPLETED");
+  await expect(
+    page.getByRole("button", { name: "Cancel run", exact: true }),
+  ).toHaveCount(0);
 });

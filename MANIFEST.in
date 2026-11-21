@@ -1,0 +1,15 @@
+include README.md AGENTS.md .env.example alembic.ini uv.lock
+recursive-include migrations *.py
+recursive-include scripts *.py
+recursive-include examples *.py *.json
+recursive-include benchmarks *.json *.md
+recursive-include docs *.md *.json *.webm *.png
+recursive-include apps/web/src *.ts *.tsx *.css
+recursive-include apps/web/scripts *.mjs
+recursive-include apps/web/tests *.ts
+include apps/web/package.json apps/web/package-lock.json apps/web/tsconfig.json
+include apps/web/next-env.d.ts apps/web/next.config.ts apps/web/postcss.config.mjs apps/web/playwright.config.ts
+recursive-include infrastructure *.yaml *.sandbox
+recursive-include tests *.py
+include .gitignore
+exclude docs/release/artifacts.json

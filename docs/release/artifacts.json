@@ -1,0 +1,21 @@
+{
+  "version": "0.1.0",
+  "directory": "/Users/somyadeeptarat/Desktop/Kairo/dist",
+  "build_directory": "/private/tmp/kairo-release-artifacts",
+  "artifacts": [
+    {
+      "file": "kairo-0.1.0-py3-none-any.whl",
+      "bytes": 69115,
+      "sha256": "8305bde747b78b3aac408f6fd65e1e1047eacccb429937cc43872787342af77c"
+    },
+    {
+      "file": "kairo-0.1.0.tar.gz",
+      "bytes": 2886155,
+      "sha256": "e76272e7851a03ee55820c6fbec349f37984694373bb20ff545a0785782996cd"
+    }
+  ],
+  "all_packaged_python_modules_byte_identical_to_validated_source": true,
+  "source_required_runtime_frontend_migration_fixture_and_test_assets_verified": true,
+  "isolated_wheel_install_import_and_kernel_execution_passed": true,
+  "publication": "none; local and unlicensed"
+}

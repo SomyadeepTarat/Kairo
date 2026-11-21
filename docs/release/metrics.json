@@ -1,0 +1,36 @@
+{
+  "version": "0.1.0",
+  "licensing": "unlicensed by explicit developer choice",
+  "target": "macOS ARM64",
+  "deterministic_python_tests_passed": 255,
+  "skipped_tests": 0,
+  "strict_mypy_source_files": 83,
+  "frontend_type_format_and_production_build_passed": true,
+  "fresh_source_python_tests_passed": 255,
+  "real_browser_tests_passed": 3,
+  "fresh_source_approval_smoke_passed": true,
+  "release_benchmark_scenario_assertions": 40,
+  "release_benchmark_assertions_passed": 40,
+  "benchmark_model_decisions": "scripted infrastructure; operations real",
+  "coding_mode": "application_orchestrated_live_ollama",
+  "coding_model": "qwen3:4b",
+  "coding_reference_commit": "5bf2ccc",
+  "coding_baseline_test_exit": 1,
+  "coding_final_test_exit": 0,
+  "coding_unchanged_acceptance_tests": 5,
+  "coding_confirmed_patch_writes": 1,
+  "coding_recovered_attempts": 1,
+  "coding_runtime_requests_including_deterministic_phases": 9,
+  "coding_provider_reported_usage": {
+    "prompt_eval_count": 8930,
+    "eval_count": 443
+  },
+  "usage_note": "Only reported responses counted; lost responses and unreported resource use remain unknown.",
+  "final_benchmark_core_source_sha256": "3209b217c5a29936fecaa2c64aaa684accff108bbbba80382cec2285762870da",
+  "limitations": [
+    "One small application-orchestrated coding task, not general autonomy.",
+    "Small local samples do not establish statistical model or latency superiority.",
+    "No coverage percentage or throughput claim was measured.",
+    "No human study completion is claimed."
+  ]
+}

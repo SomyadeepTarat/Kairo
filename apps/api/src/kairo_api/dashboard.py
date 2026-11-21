@@ -21,7 +21,7 @@ from sqlalchemy import func, select
 
 
 class Decision(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", strict=True)
     approved: bool
     reason: str = Field(min_length=1, max_length=4096)
 
