@@ -65,3 +65,34 @@ def test_invalid_structured_response_not_faked() -> None:
         assert model.last_usage is None
 
     asyncio.run(scenario())
+
+
+def test_tool_arguments_are_objects_not_nested_json_strings() -> None:
+    from kairo_core.models import ToolRequest
+
+    async def scenario() -> None:
+        source = 'def answer():\n    return "quoted value"\n'
+        transport = httpx.MockTransport(
+            lambda r: httpx.Response(
+                200,
+                json={
+                    "done": True,
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "kind": "tool",
+                                "name": "write_file",
+                                "arguments": {"path": "app.py", "content": source},
+                            }
+                        )
+                    },
+                },
+            )
+        )
+        result = await OllamaModel("fixture", transport=transport).generate(
+            ModelRequest((Message("system", "s"), Message("user", "u")), 1)
+        )
+        assert isinstance(result, ToolRequest)
+        assert json.loads(result.arguments_json)["content"] == source
+
+    asyncio.run(scenario())

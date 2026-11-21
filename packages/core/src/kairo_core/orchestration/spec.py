@@ -1,5 +1,6 @@
 """Durable, explicitly scripted workload format; not live model inference."""
 
+from pathlib import PurePosixPath
 from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
@@ -41,8 +42,11 @@ class JobSpec(Schema):
     task: str = Field(min_length=1, max_length=4096)
     steps: list[ScriptStep] = Field(default_factory=list, max_length=1000)
     backend: Literal["scripted", "ollama"] = "scripted"
+    workflow: Literal["generic", "coding"] = "generic"
     model: str = Field(default="", max_length=128)
     require_approval: bool = False
+    initial_files: dict[str, str] = Field(default_factory=dict, max_length=20)
+    initialize_git: bool = False
     permissions: list[Literal["workspace.read", "workspace.write", "command.execute"]] = Field(
         default=["workspace.read", "workspace.write", "command.execute"]
     )
@@ -74,6 +78,18 @@ class JobSpec(Schema):
     @model_validator(mode="after")
     def valid_kernel_inputs(self) -> Self:
         self.config()
+        if sum(len(value.encode()) for value in self.initial_files.values()) > 65536:
+            raise ValueError("Initial files exceed 64 KiB")
+        for name in self.initial_files:
+            path = PurePosixPath(name)
+            if (
+                not name
+                or path.is_absolute()
+                or ".." in path.parts
+                or "\\" in name
+                or any(p == ".git" or p.startswith(".env") for p in path.parts)
+            ):
+                raise ValueError("Unsafe initial file path")
         if self.backend == "scripted" and not self.steps:
             raise ValueError("Scripted jobs require explicit responses")
         if self.backend == "ollama" and not self.model.strip():

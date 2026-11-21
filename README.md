@@ -171,3 +171,14 @@ Ctrl-C. The dashboard is trusted-local, not authenticated for public hosting.
 Study `docs/learning/m11-m13.md`. Frontend checks: `npm --prefix apps/web run check`,
 `npm --prefix apps/web run build`, and `npm --prefix apps/web test` with the real API
 service running. Browser tests currently use locally installed Google Chrome.
+
+
+## Real reference coding task (M12)
+
+Run the API with `KAIRO_EMBEDDED_WORKER=0 uv run --locked python scripts/serve.py`
+so the demo owns its targeted worker. With Ollama running and qwen3:4b installed:
+`uv run --locked python scripts/demo_coding.py --approve-demo-actions`.
+Omit the flag for manual dashboard approvals. The harness orchestrates inspection/
+tests/diff, Ollama generates the patch/review, and a real worker crash/recovery is
+included. Independent unchanged tests judge the result. `--scripted` is a labelled
+infrastructure fixture. See `docs/demo/README.md` for actual evidence and failures.

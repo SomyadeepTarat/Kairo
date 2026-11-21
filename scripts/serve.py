@@ -6,7 +6,7 @@ import uvicorn
 
 
 def main() -> None:
-    os.environ["KAIRO_EMBEDDED_WORKER"] = "1"
+    os.environ.setdefault("KAIRO_EMBEDDED_WORKER", "1")
     uvicorn.run("kairo_api.main:create_app", factory=True, host="127.0.0.1", port=8000)
 
 

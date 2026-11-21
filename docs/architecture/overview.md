@@ -195,3 +195,12 @@ of database records. SSE uses ordered event cursors; SQL aggregates drive overvi
 cards. Optional service mode runs workers/control consumers without moving orchestration
 into the browser. `approvals.py` binds decisions to exact action/invocation/current
 attempt and lease, with once-only consumption. ADR 0015 describes limits and lock order.
+
+## M12 reference application
+
+`coding_model.py` is an explicit application workflow on the kernel: deterministic
+inspection/test/diff, model-generated proposal/patch/review, bounded correction rounds.
+The caller supplies bounded fixture files; preparation never resets a started run.
+`coding_demo.py` drives real killed-worker recovery and independent acceptance oracles.
+No host shell, model-generated test rewrite, implicit approval or scripted patch is
+presented as live inference. The general-purpose kernel remains available separately.

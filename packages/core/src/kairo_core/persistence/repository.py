@@ -208,6 +208,7 @@ class RunRepository:
                 tool.completed_at = datetime.fromisoformat(str(payload["completed_at"]))
         elif event.kind not in {
             "context_assembled",
+            "workspace_prepared",
             "model_request",
             "model_response",
             "model_failed",

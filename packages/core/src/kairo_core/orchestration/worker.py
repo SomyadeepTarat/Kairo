@@ -2,6 +2,7 @@
 
 import asyncio
 import fcntl
+import json
 import logging
 import os
 from collections.abc import Callable
@@ -9,9 +10,10 @@ from pathlib import Path
 from typing import Self
 from uuid import UUID, uuid4
 
+from kairo_core.events import event_now
 from kairo_core.execution.sandbox import DockerExecutor, Workspaces
 from kairo_core.models import Model
-from kairo_core.orchestration.queue import LeaseLost, LeaseRecorder, Queue
+from kairo_core.orchestration.queue import Claim, LeaseLost, LeaseRecorder, Queue
 from kairo_core.orchestration.spec import JobSpec
 from kairo_core.runtime import RunResult, run_agent
 from kairo_core.tools import builtin_registry
@@ -61,6 +63,10 @@ class Worker:
 
         def default_model(spec: JobSpec) -> Model:
             if spec.backend == "ollama":
+                if spec.workflow == "coding":
+                    from kairo_core.coding_model import CodingWorkflowModel
+
+                    return CodingWorkflowModel(spec.model)
                 from kairo_core.ollama import OllamaModel
 
                 return OllamaModel(spec.model)
@@ -93,6 +99,8 @@ class Worker:
                 identity=claim.token,
                 approved_commands=frozenset(tuple(argv) for argv in claim.spec.approved_commands),
             )
+            if not await self.queue.workspace_required(claim):
+                await self.prepare(claim, workspace)
             cancellation = asyncio.Event()
 
             async def renew() -> None:
@@ -140,9 +148,62 @@ class Worker:
                 await asyncio.gather(execution, renewal, return_exceptions=True)
                 await executor.stop()
 
-    async def reap_expired(self) -> int:
+    async def prepare(self, claim: "Claim", workspace: Path) -> None:
+        """Explicit caller fixtures, replayed idempotently only before first RUNNING."""
+        registry = builtin_registry()
+        for name, content in claim.spec.initial_files.items():
+            record = await registry.invoke(
+                "write_file",
+                json.dumps({"path": name, "content": content}),
+                ToolContext(workspace, frozenset({"workspace.write"})),
+            )
+            if record.status != "COMPLETED":
+                raise ValueError("Workspace fixture preparation failed")
+        if claim.spec.initialize_git:
+            commands = (
+                ("git", "init"),
+                ("git", "rev-parse", "--verify", "HEAD"),
+                ("git", "add", "."),
+                (
+                    "git",
+                    "-c",
+                    "user.name=Kairo demo",
+                    "-c",
+                    "user.email=kairo@localhost",
+                    "commit",
+                    "-m",
+                    "Reference application baseline",
+                ),
+            )
+            executor = DockerExecutor(
+                workspace, identity=claim.token, approved_commands=frozenset(commands)
+            )
+            try:
+                initialized = await executor.execute(commands[0], workspace)
+                if initialized.returncode:
+                    raise ValueError("Cannot initialize isolated demo repository")
+                head = await executor.execute(commands[1], workspace)
+                if head.returncode:
+                    for command in commands[2:]:
+                        if (await executor.execute(command, workspace)).returncode:
+                            raise ValueError("Cannot record isolated baseline")
+            finally:
+                await executor.stop()
+        if claim.spec.initial_files or claim.spec.initialize_git:
+            await LeaseRecorder(self.queue, claim).record(
+                event_now(
+                    claim.binding.run_id,
+                    claim.binding.attempt_id,
+                    "workspace_prepared",
+                    json.dumps(
+                        {"files": list(claim.spec.initial_files), "git": claim.spec.initialize_git}
+                    ),
+                )
+            )
+
+    async def reap_expired(self, run_id: UUID | None = None) -> int:
         count = 0
-        for claim in await self.queue.expired():
+        for claim in await self.queue.expired(run_id):
             path = self.workspaces.root / str(claim.binding.run_id)
             existing = path.is_dir() and not path.is_symlink()
             executor = DockerExecutor(self.workspaces.root, identity=claim.token)

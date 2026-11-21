@@ -2,15 +2,29 @@
 
 import json
 from dataclasses import asdict, dataclass
+from typing import Annotated, Literal
 from urllib.parse import urlsplit
 
 import httpx
-from pydantic import TypeAdapter
+from pydantic import Field, TypeAdapter
 
-from kairo_core.models import ModelRequest, ModelResponse, require_text
-from kairo_core.orchestration.spec import ScriptStep
+from kairo_core.models import ModelRequest, ModelResponse, ToolRequest, require_text
+from kairo_core.orchestration.spec import ContinueStep, FinalStep
+from kairo_core.tools.registry import Schema
 
-RESPONSE = TypeAdapter(ScriptStep)
+
+class ProviderTool(Schema):
+    kind: Literal["tool"]
+    name: str = Field(min_length=1)
+    arguments: dict[str, object]
+
+    def response(self) -> ModelResponse:
+        return ToolRequest(self.name, json.dumps(self.arguments))
+
+
+RESPONSE = TypeAdapter(
+    Annotated[ContinueStep | FinalStep | ProviderTool, Field(discriminator="kind")]
+)
 
 
 @dataclass
@@ -22,6 +36,7 @@ class OllamaModel:
     num_predict: int = 1024
     transport: httpx.AsyncBaseTransport | None = None  # Explicit HTTP fixture injection in tests.
     last_usage: dict[str, int] | None = None
+    response_schema: dict[str, object] | None = None
 
     def __post_init__(self) -> None:
         require_text(self.model, "model")
@@ -44,11 +59,28 @@ class OllamaModel:
         messages = [asdict(m) for m in request.messages]
         # Use one structured response protocol rather than provider-native tool calls.
         for message in messages:
+            if message["role"] == "assistant":
+                try:
+                    previous = json.loads(message["content"])
+                    if (
+                        isinstance(previous, dict)
+                        and "tool" in previous
+                        and "arguments" in previous
+                    ):
+                        message["content"] = json.dumps(
+                            {
+                                "kind": "tool",
+                                "name": previous["tool"],
+                                "arguments": json.loads(previous["arguments"]),
+                            }
+                        )
+                except (ValueError, TypeError):
+                    pass
             if message["role"] == "tool":
                 message["role"] = "user"
                 message["content"] = "Tool result data: " + message["content"]
         messages[0]["content"] += (
-            '\nReturn only JSON: {"kind":"tool","name":"...","arguments_json":"JSON string"}, '
+            '\nReturn only JSON: {"kind":"tool","name":"...","arguments":{"key":"value"}}, '
             '{"kind":"continue","text":"..."}, or {"kind":"final","text":"..."}. '
             "Never claim an operation occurred without tool evidence. Available tool schemas: "
             + request.tool_schemas_json
@@ -58,7 +90,7 @@ class OllamaModel:
             "messages": messages,
             "stream": False,
             "think": False,
-            "format": RESPONSE.json_schema(),
+            "format": self.response_schema or RESPONSE.json_schema(),
             "options": {
                 "temperature": 0,
                 "seed": self.seed,
