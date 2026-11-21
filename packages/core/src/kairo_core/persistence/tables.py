@@ -175,3 +175,24 @@ class EvaluationRow(Base):
     results: Mapped[list[dict[str, object]]] = mapped_column(JSONB)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ApprovalRow(Base):
+    __tablename__ = "approvals"
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
+    run_id: Mapped[UUID] = mapped_column(ForeignKey("runs.id"))
+    attempt_id: Mapped[UUID] = mapped_column(ForeignKey("run_attempts.id"))
+    invocation_id: Mapped[UUID] = mapped_column(Uuid, unique=True)
+    fingerprint: Mapped[str] = mapped_column(String(64))
+    action: Mapped[dict[str, object]] = mapped_column(JSONB)
+    risk: Mapped[str] = mapped_column(String(32))
+    agent: Mapped[str] = mapped_column(String(128))
+    status: Mapped[str] = mapped_column(String(32))
+    reason: Mapped[str | None] = mapped_column(Text)
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('PENDING','APPROVED','DENIED','CONSUMED')", name="ck_approval_status"
+        ),
+    )

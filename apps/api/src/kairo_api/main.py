@@ -1,5 +1,6 @@
 """Local execution inspection, cancellation and explicit operator reconciliation."""
 
+import asyncio
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -20,6 +21,9 @@ from kairo_core.state import RunStatus
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
+
+from kairo_api.dashboard import dashboard_routes
+from kairo_api.service import serve_execution
 
 
 class RunView(BaseModel):
@@ -84,9 +88,27 @@ def create_app(repository: RunRepository | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        stop = asyncio.Event()
+        service = (
+            (
+                asyncio.create_task(
+                    serve_execution(
+                        repo,
+                        stop,
+                        Path(os.environ.get("KAIRO_WORKSPACE_ROOT", ".kairo/workspaces")),
+                    )
+                )
+            )
+            if os.environ.get("KAIRO_EMBEDDED_WORKER") == "1"
+            else None
+        )
         try:
             yield
         finally:
+            stop.set()
+            if service is not None:
+                service.cancel()
+                await asyncio.gather(service, return_exceptions=True)
             await repo.close()
 
     app = FastAPI(title="Kairo local execution control", version="0.10.0", lifespan=lifespan)
@@ -248,4 +270,5 @@ def create_app(repository: RunRepository | None = None) -> FastAPI:
             raise HTTPException(status_code=404, detail="Evaluation not found")
         return row
 
+    app.include_router(dashboard_routes(repo))
     return app

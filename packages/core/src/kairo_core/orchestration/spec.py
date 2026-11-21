@@ -39,7 +39,10 @@ type ScriptStep = Annotated[ContinueStep | FinalStep | ToolStep, Field(discrimin
 
 class JobSpec(Schema):
     task: str = Field(min_length=1, max_length=4096)
-    steps: list[ScriptStep] = Field(min_length=1, max_length=1000)
+    steps: list[ScriptStep] = Field(default_factory=list, max_length=1000)
+    backend: Literal["scripted", "ollama"] = "scripted"
+    model: str = Field(default="", max_length=128)
+    require_approval: bool = False
     permissions: list[Literal["workspace.read", "workspace.write", "command.execute"]] = Field(
         default=["workspace.read", "workspace.write", "command.execute"]
     )
@@ -71,6 +74,10 @@ class JobSpec(Schema):
     @model_validator(mode="after")
     def valid_kernel_inputs(self) -> Self:
         self.config()
+        if self.backend == "scripted" and not self.steps:
+            raise ValueError("Scripted jobs require explicit responses")
+        if self.backend == "ollama" and not self.model.strip():
+            raise ValueError("Select an installed local model")
         for step in self.steps:
             step.response()
         for command in self.approved_commands:

@@ -156,3 +156,18 @@ inspects persisted outcomes. Execute an API submission using
 `uv run --locked python scripts/evaluate.py execute EVALUATION_UUID`.
 A completed evaluation can contain failed cases. Partial results survive interruption;
 evaluations are never automatically replayed after an unknown process outcome.
+
+
+## Local dashboard (M11)
+
+After database migration, run `uv run --locked python scripts/serve.py` to start the
+loopback API, worker, coordinator and evaluation consumer. In another terminal run
+`npm --prefix apps/web ci` and `npm --prefix apps/web run dev`, then open
+http://127.0.0.1:3000. The UI submits real work; approval is enabled by default for
+writes/commands. Scripted infrastructure examples are labelled no-inference.
+Ollama tasks use only the selected local installed model. Stop both processes with
+Ctrl-C. The dashboard is trusted-local, not authenticated for public hosting.
+
+Study `docs/learning/m11-m13.md`. Frontend checks: `npm --prefix apps/web run check`,
+`npm --prefix apps/web run build`, and `npm --prefix apps/web test` with the real API
+service running. Browser tests currently use locally installed Google Chrome.

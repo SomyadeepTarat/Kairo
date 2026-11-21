@@ -187,3 +187,11 @@ lease fencing or committed state. The dashboard is deliberately outside this sco
 Queued runs insert `LeaseRecorder` between the OTel decorator and repository; it
 checks live lease ownership in the same transaction as each event. Direct runs use
 the repository's current-attempt/state checks without claiming a worker lease.
+
+## M11 presentation and approval boundary
+
+Next.js at `apps/web/` proxies loopback `/api` to FastAPI. UI is a typed projection
+of database records. SSE uses ordered event cursors; SQL aggregates drive overview
+cards. Optional service mode runs workers/control consumers without moving orchestration
+into the browser. `approvals.py` binds decisions to exact action/invocation/current
+attempt and lease, with once-only consumption. ADR 0015 describes limits and lock order.

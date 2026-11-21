@@ -49,6 +49,6 @@ def test_inspection_api_and_restart(database_url: str) -> None:
                     assert (
                         await client.get(f"/api/v1/runs/{run_id}/events?after=-1")
                     ).status_code == 422
-                    assert (await client.post("/api/v1/runs")).status_code == 405
+                    assert (await client.post("/api/v1/runs")).status_code == 422
 
     asyncio.run(scenario())

@@ -58,7 +58,15 @@ class Worker:
             raise ValueError("Invalid worker capacity")
         self.queue, self.workspaces, self.capacity = queue, Workspaces(root), capacity
         self.id = uuid4()
-        self.model_factory = model_factory or (lambda spec: spec.build_model())
+
+        def default_model(spec: JobSpec) -> Model:
+            if spec.backend == "ollama":
+                from kairo_core.ollama import OllamaModel
+
+                return OllamaModel(spec.model)
+            return spec.build_model()
+
+        self.model_factory = model_factory or default_model
 
     def workspace(self, identity: UUID) -> Path:
         path = self.workspaces.root / str(identity)
@@ -93,6 +101,11 @@ class Worker:
                     if await self.queue.heartbeat(claim):
                         cancellation.set()
 
+            from kairo_core.approvals import Approvals
+
+            async def authorize(invocation: UUID, name: str, arguments: str, risk: str) -> bool:
+                return await Approvals(self.queue).wait(claim, invocation, name, arguments, risk)
+
             execution = asyncio.create_task(
                 run_agent(
                     claim.spec.task,
@@ -108,6 +121,7 @@ class Worker:
                     ),
                     cancellation=cancellation,
                     resume=continuation,
+                    authorize=authorize if claim.spec.require_approval else None,
                 )
             )
             renewal = asyncio.create_task(renew())

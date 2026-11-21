@@ -3,7 +3,7 @@
 import asyncio
 import json
 import math
-from collections.abc import Coroutine
+from collections.abc import Callable, Coroutine
 from dataclasses import asdict, dataclass
 from enum import StrEnum
 from time import monotonic
@@ -64,7 +64,11 @@ class AgentConfig:
         )
 
 
+type Authorize = Callable[[UUID, str, str, str], Coroutine[object, object, bool]]
+
+
 class FailureCode(StrEnum):
+    APPROVAL_DENIED = "APPROVAL_DENIED"
     CONTEXT_LIMIT = "CONTEXT_LIMIT"
     STEP_LIMIT = "STEP_LIMIT"
     STEP_TIMEOUT = "STEP_TIMEOUT"
@@ -162,6 +166,7 @@ async def _run_agent(
     recorder: Recorder | None = None,
     binding: RunBinding | None = None,
     resume: KernelSnapshot | None = None,
+    authorize: Authorize | None = None,
 ) -> RunResult:
     """Execute a fresh run. Invalid caller inputs raise; execution failures return FAILED.
 
@@ -346,9 +351,41 @@ async def _run_agent(
                     steps.append(StepRecord(request, response, failure))
                     return await finish(RunStatus.FAILED, failure)
                 steps.append(StepRecord(request, response))
-                await move(RunStatus.WAITING_FOR_TOOL)
-
                 invocation_id = uuid4()
+                if authorize is not None and tools.side_effect(response.name) != "read_only":
+                    await move(RunStatus.WAITING_FOR_APPROVAL)
+                    try:
+                        granted = await _await_operation(
+                            authorize(
+                                invocation_id,
+                                response.name,
+                                response.arguments_json,
+                                str(tools.side_effect(response.name)),
+                            ),
+                            max(0, deadline - monotonic()),
+                            cancellation,
+                        )
+                    except ValueError:
+                        return await finish(
+                            RunStatus.FAILED,
+                            Failure(FailureCode.INVALID_RESPONSE, "Invalid approval action"),
+                        )
+                    except _RunCancelled:
+                        return await finish(RunStatus.CANCELLED)
+                    except _CallTimedOut:
+                        return await finish(
+                            RunStatus.FAILED,
+                            Failure(FailureCode.RUN_DEADLINE, "Approval wait exhausted run budget"),
+                        )
+                    if not granted:
+                        return await finish(
+                            RunStatus.FAILED,
+                            Failure(FailureCode.APPROVAL_DENIED, "Action was denied"),
+                        )
+                    await move(RunStatus.RUNNING)
+                    # Human waiting counts against the run budget, not the tool step budget.
+                    started = monotonic()
+                await move(RunStatus.WAITING_FOR_TOOL)
                 await emit(
                     "tool_requested",
                     {
@@ -464,6 +501,7 @@ async def run_agent(
     recorder: Recorder | None = None,
     binding: RunBinding | None = None,
     resume: KernelSnapshot | None = None,
+    authorize: Authorize | None = None,
 ) -> RunResult:
     """Instrument a bounded kernel execution without changing its execution contracts."""
     from kairo_core.observability import TraceRecorder
@@ -482,6 +520,7 @@ async def run_agent(
             recorder=traced,
             binding=binding,
             resume=resume,
+            authorize=authorize,
         )
     finally:
         traced.close()
